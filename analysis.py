@@ -25,7 +25,7 @@ import collections
 import xml.dom.minidom
 import xml.etree.ElementTree
 
-__version__ = '1.6.0'
+__version__ = '1.6.1'
 __author__ = 'Lukas Prokop <lukas.prokop@student.tugraz.at>'
 
 SAT = 10
@@ -372,7 +372,7 @@ def main(args: argparse.Namespace) -> int:
     analyzers = []
 
     if read_stdin:
-        print('No DIMACS filepaths provided. Expecting DIMACS content at stdin …')
+        print('No DIMACS filepaths provided. Expecting DIMACS content at stdin …', file=sys.stderr)
         analyzers.append(IpasirAnalyzer())
         readDimacs(sys.stdin, analyzers[-1], ignoreheader=args.ignore_header)
 
