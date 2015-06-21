@@ -144,7 +144,7 @@ class IpasirAnalyzer(Ipasir):
             self.metrics['@path'] = filepath
 
     def signature(self) -> str:
-        return "IPASIR analyzer 1.3.0"
+        return "IPASIR analyzer 1.4.0"
 
     def headerline(self, nbvars: int, nbclauses: int):
         self.header = (nbvars, nbclauses)
@@ -363,17 +363,19 @@ def toJson(metrics: [dict]) -> bytes:
 
 def main(args: argparse.Namespace) -> int:
     """Main routine"""
+    dimacsfiles = filter(lambda v: v != '-', args.dimacsfiles)
+    read_stdin = '-' in args.dimacsfiles or len(args.dimacsfiles) == 0
     analyzers = []
 
-    if args.dimacsfiles:
-        for dimacsfile in args.dimacsfiles:
-            analyzers.append(IpasirAnalyzer(filepath=dimacsfile))
-            with open(dimacsfile) as fp:
-                readDimacs(fp, analyzers[-1])
-    else:
+    if read_stdin:
         print('No DIMACS filepaths provided. Expecting DIMACS content at stdin …')
         analyzers.append(IpasirAnalyzer())
         readDimacs(sys.stdin, analyzers[-1], ignoreheader=args.ignore_header)
+
+    for dimacsfile in dimacsfiles:
+        analyzers.append(IpasirAnalyzer(filepath=dimacsfile))
+        with open(dimacsfile) as fp:
+            readDimacs(fp, analyzers[-1])
 
     for analyzer in analyzers:
         analyzer.solve()
@@ -396,7 +398,7 @@ def main(args: argparse.Namespace) -> int:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='CNF analysis')
 
-    parser.add_argument('dimacsfiles', metavar='dimacsfiles', nargs='+',
+    parser.add_argument('dimacsfiles', metavar='dimacsfiles', nargs='*',
                         help='filepath of DIMACS file')
     parser.add_argument('-f', '--format', default='json',
                         help='output format (default: json)')
