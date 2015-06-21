@@ -144,7 +144,7 @@ class IpasirAnalyzer(Ipasir):
             self.metrics['@path'] = filepath
 
     def signature(self) -> str:
-        return "IPASIR analyzer 1.5.1"
+        return "IPASIR analyzer 1.5.2"
 
     def headerline(self, nbvars: int, nbclauses: int):
         self.header = (nbvars, nbclauses)
