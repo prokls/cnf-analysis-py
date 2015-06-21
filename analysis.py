@@ -144,7 +144,7 @@ class IpasirAnalyzer(Ipasir):
             self.metrics['@path'] = filepath
 
     def signature(self) -> str:
-        return "IPASIR analyzer 1.2.1"
+        return "IPASIR analyzer 1.3.0"
 
     def headerline(self, nbvars: int, nbclauses: int):
         self.header = (nbvars, nbclauses)
@@ -242,6 +242,7 @@ class IpasirAnalyzer(Ipasir):
         }
 
     def release(self):
+        super().release()
         self.check_header()
 
         clause_lengths = [len(c) for c in self.clauses]
