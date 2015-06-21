@@ -10,7 +10,9 @@ Dependencies
 ------------
 
 * `python3 <http://python.org/>`_
-* `lxml <http://lxml.de/>`_
+
+I think it should work with every 3.x release.
+However I tested it with Python 3.4.0 on linux x86_64.
 
 Example
 -------

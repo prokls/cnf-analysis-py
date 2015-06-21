@@ -14,16 +14,18 @@
     (C) 2015, BSD 3-clause licensed, Lukas Prokop
 """
 
+import io
 import re
 import sys
 import json
 import datetime
 import statistics
-import lxml.etree
 import argparse
 import collections
+import xml.dom.minidom
+import xml.etree.ElementTree
 
-__version__ = '1.5.4'
+__version__ = '1.6.0'
 __author__ = 'Lukas Prokop <lukas.prokop@student.tugraz.at>'
 
 SAT = 10
@@ -328,19 +330,13 @@ def readDimacs(fp, analyzer: Ipasir, *, ignoreheader=False):
         lineno += 1
 
 
-xml_options = {
-    'xml_declaration': True,
-    'pretty_print': True,
-    'encoding': 'utf-8'
-}
-
-
 def toXml(metrics: [dict]) -> bytes:
     """Take a list of metrics dictionary and return XML representation."""
-    metrics_elem = lxml.etree.Element('metrics')
+    Element = xml.etree.ElementTree.Element
+    metrics_elem = Element('metrics')
 
     for metric in metrics:
-        file_elem = lxml.etree.Element('file')
+        file_elem = Element('file')
 
         for key in metric.keys():
             if key.startswith('@'):
@@ -349,14 +345,19 @@ def toXml(metrics: [dict]) -> bytes:
         for name, value in metric.items():
             if name.startswith('@'):
                 continue
-            metric = lxml.etree.Element('metric')
+            metric = Element('metric')
             metric.attrib[name] = str(value)
             file_elem.append(metric)
 
         metrics_elem.append(file_elem)
 
-    tree = lxml.etree.ElementTree(metrics_elem)
-    return lxml.etree.tostring(tree, **xml_options)
+    output = io.BytesIO()
+    tree = xml.etree.ElementTree.ElementTree(metrics_elem)
+    tree.write(output, encoding='utf-8')
+    
+    # pretty printing
+    doc = xml.dom.minidom.parseString(output.getvalue())
+    return doc.toprettyxml().encode('utf-8')
 
 
 def toJson(metrics: [dict]) -> bytes:
