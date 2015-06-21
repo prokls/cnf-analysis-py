@@ -23,7 +23,8 @@ import lxml.etree
 import argparse
 import collections
 
-__version__ = '1.5.3'
+__version__ = '1.5.4'
+__author__ = 'Lukas Prokop <lukas.prokop@student.tugraz.at>'
 
 SAT = 10
 UNSAT = 20
