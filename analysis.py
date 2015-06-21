@@ -144,7 +144,7 @@ class IpasirAnalyzer(Ipasir):
             self.metrics['@path'] = filepath
 
     def signature(self) -> str:
-        return "IPASIR analyzer 1.4.1"
+        return "IPASIR analyzer 1.5.1"
 
     def headerline(self, nbvars: int, nbclauses: int):
         self.header = (nbvars, nbclauses)
@@ -286,7 +286,7 @@ class IpasirAnalyzer(Ipasir):
                 self.metrics['pure_literals_contradiction'] = pure['contradiction']
 
 
-def readDimacs(fp, analyzer: Ipasir, *, ignoreheader=True):
+def readDimacs(fp, analyzer: Ipasir, *, ignoreheader=False):
     """Take a file pointer and fill analyzer
     with data using the IPASIR interface. Returns None.
     """
