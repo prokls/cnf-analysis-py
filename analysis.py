@@ -23,6 +23,8 @@ import lxml.etree
 import argparse
 import collections
 
+__version__ = '1.5.3'
+
 SAT = 10
 UNSAT = 20
 
@@ -144,7 +146,7 @@ class IpasirAnalyzer(Ipasir):
             self.metrics['@path'] = filepath
 
     def signature(self) -> str:
-        return "IPASIR analyzer 1.5.2"
+        return "IPASIR analyzer " + __version__
 
     def headerline(self, nbvars: int, nbclauses: int):
         self.header = (nbvars, nbclauses)
