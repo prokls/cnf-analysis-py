@@ -144,7 +144,7 @@ class IpasirAnalyzer(Ipasir):
             self.metrics['@path'] = filepath
 
     def signature(self) -> str:
-        return "IPASIR analyzer 1.4.0"
+        return "IPASIR analyzer 1.4.1"
 
     def headerline(self, nbvars: int, nbclauses: int):
         self.header = (nbvars, nbclauses)
@@ -358,7 +358,7 @@ def toXml(metrics: [dict]) -> bytes:
 
 def toJson(metrics: [dict]) -> bytes:
     """Take a metrics dictionary and return JSON representation."""
-    return json.dumps({'metrics': metrics}, indent=2).encode('utf-8')
+    return json.dumps({'metrics': metrics}, indent=2).encode('utf-8') + b'\n'
 
 
 def main(args: argparse.Namespace) -> int:
