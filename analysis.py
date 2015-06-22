@@ -25,7 +25,7 @@ import collections
 import xml.dom.minidom
 import xml.etree.ElementTree
 
-__version__ = '1.6.1'
+__version__ = '1.6.2'
 __author__ = 'Lukas Prokop <lukas.prokop@student.tugraz.at>'
 
 SAT = 10
@@ -365,30 +365,40 @@ def toJson(metrics: [dict]) -> bytes:
     return json.dumps({'metrics': metrics}, indent=2).encode('utf-8') + b'\n'
 
 
+def process_file(src, *, filepath='', ignoreheader=False) -> dict:
+    """Run the DIMACS parser for `src` and return data to store"""
+    if filepath:
+        analyzer = IpasirAnalyzer(filepath=filepath)
+    else:
+        analyzer = IpasirAnalyzer()
+
+    readDimacs(src, analyzer, ignoreheader=ignoreheader)
+
+    analyzer.solve()
+    analyzer.release()
+
+    return analyzer.metrics
+
+
 def main(args: argparse.Namespace) -> int:
     """Main routine"""
     dimacsfiles = filter(lambda v: v != '-', args.dimacsfiles)
     read_stdin = '-' in args.dimacsfiles or len(args.dimacsfiles) == 0
-    analyzers = []
+    metrics = []
 
     if read_stdin:
         print('No DIMACS filepaths provided. Expecting DIMACS content at stdin …', file=sys.stderr)
-        analyzers.append(IpasirAnalyzer())
-        readDimacs(sys.stdin, analyzers[-1], ignoreheader=args.ignore_header)
+        m = process_file(sys.stdin, ignoreheader=args.ignore_header)
+        metrics.append(m)
 
     for dimacsfile in dimacsfiles:
-        analyzers.append(IpasirAnalyzer(filepath=dimacsfile))
         with open(dimacsfile) as fp:
-            readDimacs(fp, analyzers[-1])
-
-    for analyzer in analyzers:
-        analyzer.solve()
-        analyzer.release()
+            metrics.append(process_file(fp, filepath=dimacsfile))
 
     if args.format == 'xml':
-        output = toXml([a.metrics for a in analyzers])
+        output = toXml(metrics)
     else:  # elif args.format == 'json':
-        output = toJson([a.metrics for a in analyzers])
+        output = toJson(metrics)
 
     if args.output:
         with open(args.output, 'wb') as fp:

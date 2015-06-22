@@ -4,7 +4,7 @@ cnf-analysis
 cnf-analysis is a command line tool to analyse CNF files.
 CNF files are expected to be written in DIMACS format.
 After parsing them, they are read through an IPASIR interface.
-On calling the release method, metrics about the CNF file are computed.
+On calling the ``release`` method, metrics about the CNF file are computed.
 
 Dependencies
 ------------
