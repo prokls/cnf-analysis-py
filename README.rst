@@ -1,10 +1,32 @@
 cnf-analysis
 ============
 
+.. contents::
+    :backlinks: none
+
 cnf-analysis is a command line tool to analyse CNF files.
 CNF files are expected to be written in DIMACS format.
 After parsing them, they are read through an IPASIR interface.
 On calling the ``release`` method, metrics about the CNF file are computed.
+Those metrics are written to a file with extension ``.stats``.
+
+Performance
+-----------
+
+* 825 large files of SAT competition 2014 were computed in 18 hours.
+* 50306 small files of SATlib were computed in less than 20 minutes.
+
+So performance can be a bit of an issue, but this gives you an estimate.
+You could split the evaluation space into multiple processes. I didn't.
+
+Memory
+------
+
+On my 4GB-RAM machine I was able to process files up to 1 GB,
+but some benchmarks are larger (for example ``sc14-app/esawn_uw3.debugged.cnf``
+of SAT competition 2014). I used a machine with 16 GB in that case and
+it worked fine. I never got into major trouble with 16 GB.
+
 
 Dependencies
 ------------
@@ -19,52 +41,146 @@ Example
 
 Here you can see a simple example::
 
-    $ python3 analysis.py satcomp2014_benchmarks/sc14-app/001-80-12.cnf
+    $ python3 analysis.py satcomp2014/sc14-app/001-80-12.cnf
+
+    Info: File 'satcomp2014/sc14-app/001-80-12.cnf.stats' written
+    python3 analysis.py satcomp2014/sc14-app/001-80-12.cnf  33.14s user 0.20s system 99% cpu 33.389 total
+
+    $ cat satcomp2014/sc14-app/001-80-12.cnf.stats
 
     {
       "metrics": [
         {
-          "count_pure_literals_positive": 147,
-          "count_unique_literals": 26816,
-          "@time": "2015-06-21T22:55:46.358903",
-          "clause_length_mean": 6.5592449549413985,
-          "literal_recurrence_mean": 234.07816229116946,
-          "count_clauses": 478488,
-          "@path": "satcomp2014_benchmarks/sc14-app/001-80-12.cnf",
-          "clause_length_sum": 3138520,
-          "count_unique_clauses": 478488,
-          "clause_length_std": 1.3266195149505624,
-          "literal_recurrence_sd": 247.31242553401754,
-          "count_pure_literals": 300,
-          "count_existential_literals": 0,
-          "literal_recurrence_percent": 0.0004892038301716437,
-          "positive_literals_ratio": 0.502639142015982,
-          "lowest_variable": 1,
-          "count_unique_variables": 13408,
-          "highest_variable": 13408
+          "sha1sum": "15ae98b1f6b82200ae91094b3fb9630ccdb1b0cb",
+          "time": "2015-08-06T23:54:48.771150",
+          "filename": "001-80-12.cnf",
+          "metric": {
+            "literals_existential_count": 0,
+            "variables_recurrence_smallest": 4,
+            "variables_unique_count": 13408,
+            "literals_unique_count": 26816,
+            "literals_unit_unique_negative_count": 147,
+            "clauses_length_mean": 6.5592449549413985,
+            "variables_recurrence_mean": 234.07816229116946,
+            "literals_positive_in_clauses_largest": 7,
+            "variables_recurrence_largest": 2601,
+            "clauses_length_largest": 8,
+            "literals_positive_in_clauses_mean": 3.2969332564244036,
+            "variables_lowest": 1,
+            "clauses_length_sd": 1.3266195149505624,
+            "literals_positive_in_clauses_count": 478488,
+            "variables_largest": 13408,
+            "variables_recurrence_sum": 3138520,
+            "variables_recurrence_sd": 247.31242553401754,
+            "literals_unit_unique_count": 300,
+            "variables_recurrence_percent": 0.0004892038301716437,
+            "literals_unit_unique_positive_count": 153,
+            "variables_recurrence_count": 13408,
+            "literals_positive_in_clauses_sum": 1577543,
+            "clauses_length_sum": 3138520,
+            "literals_positive_in_clauses_smallest": 0,
+            "clauses_count": 478488,
+            "literals_positive_in_clauses_sd": 1.628150659160096,
+            "clauses_unique_count": 478488,
+            "clauses_length_smallest": 1,
+            "literals_count": 3138520,
+            "literals_positive_ratio": 0.502639142015982,
+            "clauses_length_count": 478488
+          }
         }
       ]
     }
 
-    python3 analysis.py   30.37s user 0.29s system 83% cpu 36.649 total
+As you can see there are three meta values which is the sha1sum of the
+evaluated file, the timestamp of the evaluation and the basename of the file.
+The evaluated metrics are stored as key-value pairs.
+You can get a specification of all metrics using::
 
-You can use ``--help`` to get help for the command-line tool::
+    $ python3 analysis.py --description
 
-    usage: analysis.py [-h] [-f FORMAT] [-p] [-o OUTPUT]
-                       dimacsfiles [dimacsfiles ...]
+    Undocumented values might be lost in future (major or minor) releases.
 
-    CNF analysis
+    Three meta attributes
+    =====================
 
-    positional arguments:
-      dimacsfiles           filepath of DIMACS file
+    time
+      UTC timestamp when parsing: ISO 8601 combined date and time format
+    filename
+      basename of filepath parsed (available only if input was not stdin)
+    sha1sum
+      SHA1 sum of the original CNF file (available only if input was not stdin)
 
-    optional arguments:
-      -h, --help            show this help message and exit
-      -f FORMAT, --format FORMAT
-                            output format (default: json)
-      -p, --ignore-header   do not check validity of header lines (default: false)
-      -o OUTPUT, --output OUTPUT
-                            write output to this filepath (default: stdout)
+    Clauses
+    =======
+
+    clauses_count
+      Number of clauses in the original file
+    […]
+
+``--help`` will of course also help you.
+
+Problematic files
+-----------------
+
+DIMACS is a pseudo-standard. There is no formal specification for the format.
+So there exist problematic files meaning they use an unconventional syntax compared to the majority of CNF files.
+
+Per default, ``analysis.py`` checks the header specifying the number of variables and clauses.
+The header's number of clauses has to be the actual number of clauses including duplicates.
+The header's number of variables has to the actual number of variables mentioned.
+Some files have a higher value for the number of variables because some variables shall be created,
+but can take an arbitrary boolean value (rendering them useless in the first place).
+
+You can handle such cases by specifying header check skipping using ``-p``::
+
+    $ cat test.cnf
+
+    p cnf 1 2
+    1 0
+
+    $ python3 analysis.py test.cnf
+
+    Traceback (most recent call last):
+      File "analysis.py", line 120, in <module>
+      […]
+      File "processing.py", line 167, in check_header
+        assert valid_clause_number, msg.format(self.header[1], computed_header[1])
+    AssertionError: Claimed number of clauses is 2, but is actually 1. Do duplicates exists?
+
+    $ python3 analysis.py test.cnf -p
+
+    Info: File 'test.cnf.stats' written
+
+Furthermore some DIMACS interpretation allow the final "0" of a clause to be specified in a separate new line.
+And ``mcnf`` generates files which are terminated by a line "%" followed by a line "0".
+So one problematic CNF file would be::
+
+    $ cat test.cnf
+
+    p cnf 1 1
+    1
+    0
+    %
+    0
+
+    $ python3 analysis.py test.cnf
+
+    Traceback (most recent call last):
+      File "analysis.py", line 120, in <module>
+        sys.exit(main(args))
+      File "analysis.py", line 88, in main
+        raise e
+      File "analysis.py", line 81, in main
+        read(fp, analyzer, ignoreheader=args.ignoreheader)
+      File "input.py", line 46, in read_dimacs
+        assert re.search(clause_regex, line), msg.format(clause_regex, lineno)
+    AssertionError: Clause lines must have layout ^\s*((-?\d+)\s+)+?0\s*$ at line 2
+
+    $ python3 analysis.py test.cnf -m
+
+    Info: File 'test.cnf.stats' written
+
+Files in such a syntax can be handled by the *multiline* mode. Specify ``-m`` to enable this mode.
 
 Features
 --------
@@ -74,195 +190,91 @@ XML output
 
 Use ``-f xml``::
 
-    $ python3 analysis.py -f xml satcomp2014_benchmarks/sc14-app/001-80-12.cnf
+    $ python3 analysis.py -f xml satcomp2014/sc14-app/001-80-12.cnf
 
-    <?xml version='1.0' encoding='utf-8'?>
+    Info: File 'satcomp2014/sc14-app/001-80-12.cnf.stats' written
+    python3 analysis.py -f xml satcomp2014/sc14-app/001-80-12.cnf  34.61s user 0.21s system 99% cpu 35.072 total
+
+    $ cat 001-80-12.cnf.stats
+
+    <?xml version="1.0" encoding="utf-8"?>
     <metrics>
-      <file path="satcomp2014_benchmarks/sc14-app/001-80-12.cnf" time="2015-06-21T23:01:46.994936">
-        <metric count_existential_literals="0"/>
-        <metric count_unique_clauses="478488"/>
-        <metric literal_recurrence_percent="0.0004892038301716437"/>
-        <metric clause_length_mean="6.5592449549413985"/>
-        <metric count_clauses="478488"/>
-        <metric count_pure_literals_positive="147"/>
-        <metric literal_recurrence_mean="234.07816229116946"/>
-        <metric count_unique_literals="26816"/>
-        <metric highest_variable="13408"/>
-        <metric clause_length_sum="3138520"/>
-        <metric lowest_variable="1"/>
-        <metric count_pure_literals="300"/>
-        <metric positive_literals_ratio="0.502639142015982"/>
-        <metric clause_length_std="1.3266195149505624"/>
-        <metric count_unique_variables="13408"/>
-        <metric literal_recurrence_sd="247.31242553401754"/>
+      <file filename="001-80-12.cnf" sha1sum="15ae98b1f6b82200ae91094b3fb9630ccdb1b0cb" time="2015-08-07T00:50:46.290754">
+        <metric literals_existential_count="0"/>
+        <metric literals_positive_ratio="0.502639142015982"/>
+        […]
+        <metric literals_unit_unique_positive_count="153"/>
       </file>
     </metrics>
-
-Redirect to a file
-~~~~~~~~~~~~~~~~~~
-
-Use ``-o <filename>``::
-
-    $ python3 analysis.py -o 001-80-12.metrics.json satcomp2014_benchmarks/sc14-app/001-80-12.cnf
-    $ cat 001-80-12.metrics.json
-
-    {
-      "metrics": [
-        {
-          "literal_recurrence_percent": 0.0004892038301716437,
-          "count_unique_clauses": 478488,
-          "literal_recurrence_sd": 247.31242553401754,
-          "clause_length_sum": 3138520,
-          "count_pure_literals": 300,
-          "positive_literals_ratio": 0.502639142015982,
-          "count_unique_variables": 13408,
-          "clause_length_std": 1.3266195149505624,
-          "count_unique_literals": 26816,
-          "count_pure_literals_positive": 147,
-          "lowest_variable": 1,
-          "@time": "2015-06-21T23:20:05.889001",
-          "highest_variable": 13408,
-          "literal_recurrence_mean": 234.07816229116946,
-          "count_clauses": 478488,
-          "@path": "satcomp2014_benchmarks/sc14-app/001-80-12.cnf",
-          "count_existential_literals": 0,
-          "clause_length_mean": 6.5592449549413985
-        }
-      ]
-    }
 
 Reading from stdin
 ~~~~~~~~~~~~~~~~~~
 
 Use ``-`` as positional argument::
 
-    $ python3 analysis.py < satcomp2014_benchmarks/sc14-app/001-80-12.cnf
+    $ python3 analysis.py - < satcomp2014/sc14-app/001-80-12.cnf
 
     No DIMACS filepaths provided. Expecting DIMACS content at stdin …
     {
       "metrics": [
         {
-          "clause_length_std": 1.3266195149505624,
-          "count_unique_clauses": 478488,
-          "count_unique_literals": 26816,
-          "@time": "2015-06-21T23:14:36.023449",
-          "literal_recurrence_percent": 0.0004892038301716437,
-          "count_pure_literals_positive": 147,
-          "clause_length_sum": 3138520,
-          "lowest_variable": 1,
-          "count_clauses": 478488,
-          "count_existential_literals": 0,
-          "count_pure_literals": 300,
-          "positive_literals_ratio": 0.502639142015982,
-          "literal_recurrence_sd": 247.31242553401754,
-          "highest_variable": 13408,
-          "literal_recurrence_mean": 234.07816229116946,
-          "clause_length_mean": 6.5592449549413985,
-          "count_unique_variables": 13408
+          "time": "2015-08-07T01:13:30.006901",
+          "metric": {
+            "clauses_length_sum": 3138520,
+            "variables_recurrence_percent": 0.0004892038301716437,
+            […]
+            "variables_recurrence_largest": 2601
+          }
         }
       ]
     }
 
-Reading multiple files
-~~~~~~~~~~~~~~~~~~~~~~
+Incremental progress
+~~~~~~~~~~~~~~~~~~~~
 
-Provide them as positional arguments::
+Assume you use a wildcard to list a range of files. During the progress you abort the procedure.
+Later on you want to continue. But you want to skip files which already have valid data.
+Use ``--skip-existing``::
 
-    $ python3 analysis.py satcomp2014_benchmarks/sc14-app/001-80-12.cnf satcomp2014_benchmarks/sc14-app/002-23-96.cnf
+    $ python3 analysis.py hanoi4.cnf --skip-existing
+
+    Info: File hanoi4.cnf.stats already exists. Skipping.
+
+Combining results
+-----------------
+
+You end up with a lot of metrics in ``.stats`` files.
+Assume you want to combine all results into one files.
+Use ``combine.py``::
+
+    $ python3 combine.py 001-80-12.cnf.stats hanoi4.cnf.stats
 
     {
       "metrics": [
         {
-          "literal_recurrence_percent": 0.0004892038301716437,
-          "literal_recurrence_sd": 247.31242553401754,
-          "count_pure_literals": 300,
-          "literal_recurrence_mean": 234.07816229116946,
-          "lowest_variable": 1,
-          "count_unique_literals": 26816,
-          "clause_length_mean": 6.5592449549413985,
-          "count_clauses": 478488,
-          "highest_variable": 13408,
-          "count_unique_variables": 13408,
-          "count_pure_literals_positive": 147,
-          "count_unique_clauses": 478488,
-          "clause_length_std": 1.3266195149505624,
-          "clause_length_sum": 3138520,
-          "@time": "2015-06-21T23:27:07.614124",
-          "@path": "satcomp2014_benchmarks/sc14-app/001-80-12.cnf",
-          "count_existential_literals": 0,
-          "positive_literals_ratio": 0.502639142015982
+          "filename": "001-80-12.cnf",
+          "metric": {
+            "clauses_count": 478488,
+            "clauses_length_largest": 8,
+            […]
+          },
+          "sha1sum": "15ae98b1f6b82200ae91094b3fb9630ccdb1b0cb",
+          "time": "2015-08-07T01:24:01.552011"
         },
         {
-          "literal_recurrence_percent": 0.0015364535732969443,
-          "literal_recurrence_sd": 227.8888691883187,
-          "count_pure_literals": 384,
-          "count_existential_literals_positive": 34,
-          "literal_recurrence_mean": 203.7460354477612,
-          "lowest_variable": 1,
-          "count_unique_literals": 8512,
-          "clause_length_mean": 6.588312922297297,
-          "count_existential_literals_negative": 30,
-          "count_clauses": 132608,
-          "highest_variable": 4288,
-          "count_unique_variables": 4288,
-          "count_pure_literals_positive": 187,
-          "count_unique_clauses": 132608,
-          "clause_length_std": 1.383146716509098,
-          "clause_length_sum": 873663,
-          "@time": "2015-06-21T23:27:29.174615",
-          "@path": "satcomp2014_benchmarks/sc14-app/002-23-96.cnf",
-          "count_existential_literals": 64,
-          "positive_literals_ratio": 0.5027304578538865
+          "filename": "hanoi4.cnf",
+          "metric": {
+            "clauses_count": 4934,
+            "clauses_length_largest": 7,
+            […]
+          },
+          "sha1sum": "d6023908b0c475619d7493f63685fd16936daa9c",
+          "time": "2015-08-07T01:23:56.925434"
         }
       ]
     }
 
-Reading multiple files on stdin
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Let's try to concatenate them::
-
-    $ cat satcomp2014_benchmarks/sc14-app/001-80-12.cnf satcomp2014_benchmarks/sc14-app/002-23-96.cnf | python3 analysis.py
-
-    No DIMACS filepaths provided. Expecting DIMACS content at stdin …
-    Traceback (most recent call last):
-      File "analysis.py", line 411, in <module>
-        sys.exit(main(args))
-      File "analysis.py", line 373, in main
-        readDimacs(sys.stdin, analyzers[-1], ignoreheader=args.ignore_header)
-      File "analysis.py", line 300, in readDimacs
-        assert state == 0, msg.format(lineno)
-    AssertionError: Unexpected DIMACS header at line 482710
-
-There are two DIMACS headers.
-Use ``-p`` to ignore DIMACS headers::
-
-    $ cat satcomp2014_benchmarks/sc14-app/001-80-12.cnf satcomp2014_benchmarks/sc14-app/002-23-96.cnf | python3 analysis.py -p
-
-    No DIMACS filepaths provided. Expecting DIMACS content at stdin …
-    {
-      "metrics": [
-        {
-          "@time": "2015-06-21T23:37:04.205106",
-          "lowest_variable": 1,
-          "count_pure_literals": 684,
-          "count_clauses": 607512,
-          "clause_length_mean": 6.5747886461502,
-          "count_pure_literals_positive": 334,
-          "count_unique_clauses": 603928,
-          "highest_variable": 13408,
-          "count_unique_variables": 13408,
-          "positive_literals_ratio": 0.5026709558183825,
-          "clause_length_sum": 3994263,
-          "clause_length_std": 1.3376598294196669,
-          "literal_recurrence_percent": 0.0004925630970967433,
-          "literal_recurrence_sd": 295.890907634993,
-          "count_unique_literals": 26816,
-          "literal_recurrence_mean": 299.23799224343674,
-          "count_existential_literals": 0
-        }
-      ]
-    }
+You can use ``-f xml`` to get XML output.
 
 Cheers,
 prokls
