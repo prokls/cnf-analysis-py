@@ -241,7 +241,7 @@ literals_positive_in_clauses_smallest
 literals_positive_in_clauses_sum
   How many literals have a positive sign in total?
 literals_positive_ratio
-  What is the probability that a random literals has a positive sign?
+  What is the probability that a random literal has a positive sign?
 literals_unit_unique_contradictory_variable
   Variable which occurs with clauses a and -a in CNF (only printed if some variable is actually contradictory)
 literals_unit_unique_count
