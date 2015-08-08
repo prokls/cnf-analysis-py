@@ -335,9 +335,19 @@ class IpasirAnalyzer(ExtendedIpasir):
         if filepath:
             writer.receive('@filename', os.path.basename(filepath))
             try:
+                md5 = hashlib.md5()
+                sha1 = hashlib.sha1()
+
                 with open(filepath, 'rb') as fp:
-                    hashvalue = hashlib.sha1(fp.read()).hexdigest()
-                writer.receive('@sha1sum', hashvalue)
+                    while True:
+                        chunk = fp.read(65536)
+                        if not chunk:
+                            break
+                        md5.update(chunk)
+                        sha1.update(chunk)
+
+                writer.receive('@md5sum', md5.hexdigest())
+                writer.receive('@sha1sum', sha1.hexdigest())
             except FileNotFoundError:
                 pass
 
