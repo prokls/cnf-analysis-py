@@ -13,8 +13,8 @@ Those metrics are written to a file with extension ``.stats``.
 Performance
 -----------
 
-* 825 large files of SAT competition 2014 were computed in 18 hours.
-* 50306 small files of SATlib were computed in less than 20 minutes.
+* 825 files (25 GB) of SAT competition 2014 were computed in 18 hours.
+* 50306 (46 GB) small files of SATlib were computed in less than 20 minutes.
 
 So performance can be a bit of an issue, but this gives you an estimate.
 You could split the evaluation space into multiple processes. I didn't.
