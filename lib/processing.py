@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-    cnf-analysis.processing
-    =======================
+    cnfanalysis.processing
+    ----------------------
 
     Analyse CNF structures.
 
@@ -451,6 +451,8 @@ class IpasirAnalyzer(ExtendedIpasir):
 
     def finish(self):
         super().finish()
+        self.writer.start_metric()
+
         self.check_header(len(self.variables), len(self.clauses) + self.clause_duplicates)
 
         # (1) number of [unique] clauses
@@ -510,3 +512,6 @@ class IpasirAnalyzer(ExtendedIpasir):
             self.writer.receive('tautological_literals', self.tautological_literals)
         if self.tautological_clauses > 0:
             self.writer.receive('tautological_clauses', self.tautological_clauses)
+
+        self.writer.end_metric()
+        self.writer.finish()

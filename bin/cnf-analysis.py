@@ -18,11 +18,11 @@ import sys
 import os.path
 import argparse
 
-import input
-import processing
-import output
+import cnfanalysis.input
+import cnfanalysis.processing
+import cnfanalysis.output
 
-__version__ = '1.6.2'
+__version__ = '1.7.0'
 __author__ = 'Lukas Prokop <lukas.prokop@student.tugraz.at>'
 
 
@@ -46,7 +46,10 @@ def main(args: argparse.Namespace) -> int:
         print('No DIMACS filepaths provided. Expecting DIMACS content at stdin …', file=sys.stderr)
 
     # abstract reader, processing and writer
-    read = input.read_multiline_dimacs if args.multiline else input.read_dimacs
+    if args.multiline:
+        read = cnfanalysis.input.read_multiline_dimacs
+    else:
+        read = cnfanalysis.input.read_dimacs
     Processor = processing.IpasirAnalyzer
     Writer = output.XMLWriter if args.format.lower() == 'xml' else output.JSONWriter
     if args.format not in ['xml', 'json']:

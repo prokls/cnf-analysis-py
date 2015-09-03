@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 """
-    cnf-analysis.input
-    ==================
+    cnfanalysis.dimacsfile
+    ----------------------
 
-    Read CNF files.
+    Tools to read CNF files.
 
     (C) 2015, BSD 3-clause licensed, Lukas Prokop
 """
@@ -12,12 +12,13 @@
 import re
 import _io
 
-import processing
+from . import processing
 
 
 def read_dimacs(fp: _io.TextIOWrapper, analyzer: processing.Ipasir, *, ignoreheader=False):
     """Take a file descriptor and fill analyzer with data
-    using the IPASIR interface. Returns None.
+    using the IPASIR interface. Header lines will be omitted,
+    if ignoreheader=True. Returns None.
     """
     lineno, state = 1, 1 if ignoreheader else 0
     clause_regex = '^\s*((-?\d+)\s+)+?0\s*$'
@@ -63,7 +64,8 @@ def read_dimacs(fp: _io.TextIOWrapper, analyzer: processing.Ipasir, *, ignorehea
 
 def read_multiline_dimacs(fp: _io.TextIOWrapper, analyzer: processing.Ipasir, *, ignoreheader=False):
     """Take a file descriptor and fill analyzer with data
-    using the IPASIR interface. Allows arbitrary newlines between literals.
+    using the IPASIR interface. Header lines will be omitted,
+    if ignoreheader=True. Allows arbitrary newlines between literals.
     Returns None.
     """
     lineno, state = 0, 1 if ignoreheader else 0

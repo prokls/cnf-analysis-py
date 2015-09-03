@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-    cnf-analysis-combiner
-    =====================
+    cnf-analysis-combine
+    ====================
 
     Given several metrics specification files (eg. JSON here) such as::
 
@@ -30,7 +30,7 @@ import xml.dom.minidom
 import xml.sax.saxutils
 import xml.etree.ElementTree
 
-import statsfile
+import cnfanalysis.statsfile
 
 
 class XMLWriter:
