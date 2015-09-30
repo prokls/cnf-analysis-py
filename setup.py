@@ -31,7 +31,7 @@ setup(
     author_email='admin@lukas-prokop.at',
     description='CNF file analysis',
     long_description=readfile('README.rst'),
-    package_dir={'cnfanalysis': 'lib'},
+    packages=['cnfanalysis'],
     platforms='any',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -47,7 +47,13 @@ setup(
         'Topic :: Security :: Cryptography',
         'Topic :: Text Processing :: General'
     ],
-    scripts=['bin/cnf-analysis-index.py', 'bin/cnf-analysis-inspect.py',
-             'bin/cnf-analysis.py', 'bin/cnf-analysis-stats-annotate.py',
-             'bin/cnf-analysis-stats-combine.py']
+    entry_points = {
+        "console_scripts": [
+            'cnf-analysis.py = cnfanalysis.scripts:main',
+            'cnf-analysis-index.py = cnfanalysis.scripts:main'
+            'cnf-analysis-inspect.py = cnfanalysis.scripts:main'
+            'cnf-analysis-stats-annotate.py = cnfanalysis.scripts:main'
+            'cnf-analysis-stats-combine.py = cnfanalysis.scripts:main'
+        ]
+    }
 )
