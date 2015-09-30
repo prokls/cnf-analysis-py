@@ -15,7 +15,7 @@ import _io
 from . import processing
 
 
-def read_dimacs(fp: _io.TextIOWrapper, analyzer: processing.Ipasir, *, ignoreheader=False):
+def read(fp: _io.TextIOWrapper, analyzer: processing.Ipasir, *, ignoreheader=False):
     """Take a file descriptor and fill analyzer with data
     using the IPASIR interface. Header lines will be omitted,
     if ignoreheader=True. Returns None.
@@ -62,7 +62,7 @@ def read_dimacs(fp: _io.TextIOWrapper, analyzer: processing.Ipasir, *, ignorehea
         raise ValueError('Is not a DIMACS file')
 
 
-def read_multiline_dimacs(fp: _io.TextIOWrapper, analyzer: processing.Ipasir, *, ignoreheader=False):
+def read_multiline(fp: _io.TextIOWrapper, analyzer: processing.Ipasir, *, ignoreheader=False):
     """Take a file descriptor and fill analyzer with data
     using the IPASIR interface. Header lines will be omitted,
     if ignoreheader=True. Allows arbitrary newlines between literals.

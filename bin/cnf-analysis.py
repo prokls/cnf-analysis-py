@@ -18,9 +18,9 @@ import sys
 import os.path
 import argparse
 
-import cnfanalysis.input
+import cnfanalysis.dimacsfile
 import cnfanalysis.processing
-import cnfanalysis.output
+import cnfanalysis.statsfile
 
 __version__ = '1.7.0'
 __author__ = 'Lukas Prokop <lukas.prokop@student.tugraz.at>'
@@ -47,12 +47,11 @@ def main(args: argparse.Namespace) -> int:
 
     # abstract reader, processing and writer
     if args.multiline:
-        read = cnfanalysis.input.read_multiline_dimacs
+        read = cnfanalysis.dimacsfile.read_multiline
     else:
-        read = cnfanalysis.input.read_dimacs
+        read = cnfanalysis.dimacsfile.read
     Processor = processing.IpasirAnalyzer
-    Writer = output.XMLWriter if args.format.lower() == 'xml' else output.JSONWriter
-    if args.format not in ['xml', 'json']:
+    if args.format not in {'xml', 'json'}:
         print("Warning: Unknown format '{}'. JSON taken as output format.".format(args.format))
 
     # read, process and write
@@ -64,7 +63,7 @@ def main(args: argparse.Namespace) -> int:
                 continue
 
         if dimacsfile == '-':
-            writer = Writer(sys.stdout, encoding=args.encoding)
+            writer = statsfile.Writer(sys.stdout, format=args.format, encoding=args.encoding)
             analyzer = Processor(writer)
             read(sys.stdin, analyzer, ignoreheader=args.ignoreheader)
             analyzer.solve()
@@ -72,7 +71,7 @@ def main(args: argparse.Namespace) -> int:
             writer.write()
         elif args.stdout:
             with open(dimacsfile) as fp:
-                writer = Writer(sys.stdout, encoding=args.encoding)
+                writer = statsfile.Writer(sys.stdout, format=args.format, encoding=args.encoding)
                 analyzer = Processor(writer, filepath=dimacsfile)
                 read(fp, analyzer, ignoreheader=args.ignoreheader)
                 analyzer.solve()
@@ -82,7 +81,7 @@ def main(args: argparse.Namespace) -> int:
             with open(dimacsfile) as fp:
                 try:
                     with open(dimacsfile + '.stats', 'wb') as fp2:
-                        writer = Writer(fp2, encoding=args.encoding)
+                        writer = statsfile.Writer(fp2, format=args.format, encoding=args.encoding)
                         analyzer = Processor(writer, filepath=dimacsfile)
                         read(fp, analyzer, ignoreheader=args.ignoreheader)
                         analyzer.solve()
