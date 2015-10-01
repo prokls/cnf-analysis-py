@@ -328,12 +328,14 @@ class IpasirAnalyzer(ExtendedIpasir):
         self.clause = []
         self.writer = writer
 
+        self.meta = {}
+
         if time:
-            writer.receive('@time', str(time))
+            self.meta['@time'] = str(time)
         else:
-            writer.receive('@time', datetime.datetime.utcnow().isoformat())
+            self.meta['@time'] = datetime.datetime.utcnow().isoformat()
         if filepath:
-            writer.receive('@filename', os.path.basename(filepath))
+            self.meta['@filename'] = os.path.basename(filepath)
             try:
                 md5 = hashlib.md5()
                 sha1 = hashlib.sha1()
@@ -346,8 +348,8 @@ class IpasirAnalyzer(ExtendedIpasir):
                         md5.update(chunk)
                         sha1.update(chunk)
 
-                writer.receive('@md5sum', md5.hexdigest())
-                writer.receive('@sha1sum', sha1.hexdigest())
+                self.meta['@md5sum'] = md5.hexdigest()
+                self.meta['@sha1sum'] = sha1.hexdigest()
             except FileNotFoundError:
                 pass
 
@@ -367,12 +369,12 @@ class IpasirAnalyzer(ExtendedIpasir):
             mean = statistics.mean(lst)
             stdev = statistics.stdev(lst)
 
-        self.writer.receive(prefix + '_mean', mean)
-        self.writer.receive(prefix + '_sd', stdev)
-        self.writer.receive(prefix + '_sum', sum(lst))
-        self.writer.receive(prefix + '_count', len(lst))
-        self.writer.receive(prefix + '_smallest', min(lst))
-        self.writer.receive(prefix + '_largest', max(lst))
+        self.metrics[prefix + '_mean'] = mean
+        self.metrics[prefix + '_sd'] = stdev
+        self.metrics[prefix + '_sum'] = sum(lst)
+        self.metrics[prefix + '_count'] = len(lst)
+        self.metrics[prefix + '_smallest'] = min(lst)
+        self.metrics[prefix + '_largest'] = max(lst)
 
         if unique_count is not None:
             self.writer.receive(prefix + '_unique_count', unique_count)
@@ -451,22 +453,21 @@ class IpasirAnalyzer(ExtendedIpasir):
 
     def finish(self):
         super().finish()
-        self.writer.start_metric()
-
         self.check_header(len(self.variables), len(self.clauses) + self.clause_duplicates)
+        self.metrics = {}
 
         # (1) number of [unique] clauses
         len_clauses = len(self.clauses) + self.clause_duplicates
-        self.writer.receive('clauses_count', len_clauses)
-        self.writer.receive('clauses_unique_count', len(self.clauses))
+        self.metrics['clauses_count'] = len_clauses
+        self.metrics['clauses_unique_count'] = len(self.clauses)
 
         # (2) number of unique literals
         len_literals = len(self.literals)
-        self.writer.receive('literals_unique_count', len_literals)
+        self.metrics['literals_unique_count'] = len_literals
 
         # (3) number of unique variables
         len_variables = len(self.variables)
-        self.writer.receive('variables_unique_count', len_variables)
+        self.metrics['variables_unique_count'] = len_variables
 
 
         # (4) statistics for clauses
@@ -475,43 +476,43 @@ class IpasirAnalyzer(ExtendedIpasir):
 
         # (5) statistics for literals
         pos_literals = [sum(int(l > 0) for l in c) for c in self.clauses]
-        self.writer.receive('literals_count', sum(clause_lengths))
+        self.metrics['literals_count'] = sum(clause_lengths)
         self.integer_list_stats(pos_literals, 'literals_positive_in_clauses')
-        self.writer.receive('literals_positive_ratio', sum(pos_literals) / sum(clause_lengths))
+        self.metrics['literals_positive_ratio'] = sum(pos_literals) / sum(clause_lengths)
 
         # (6) statistics for variables
-        self.writer.receive('variables_largest', max(self.variables))
-        self.writer.receive('variables_lowest', min(self.variables))
+        self.metrics['variables_largest'] = max(self.variables)
+        self.metrics['variables_lowest'] = min(self.variables)
 
 
         # (7) special: variable recurrence
         rec = self.variable_recurrence.values()
         self.integer_list_stats(list(rec), 'variables_recurrence')
-        self.writer.receive('variables_recurrence_percent', statistics.mean(rec) / len_clauses)
+        self.metrics['variables_recurrence_percent'] = statistics.mean(rec) / len_clauses
 
         # (8) special: existential literals
         ex = self.existential_literals()
-        self.writer.receive('literals_existential_count', ex['ex'])
+        self.metrics['literals_existential_count'] = ex['ex']
         if ex['pos'] > 0:
-            self.writer.receive('literals_existential_positive_count', ex['pos'])
+            self.metrics['literals_existential_positive_count'] = ex['pos']
         if ex['neg'] > 0:
-            self.writer.receive('literals_existential_negative_count', ex['neg'])
+            self.metrics['literals_existential_negative_count'] = ex['neg']
 
         # (9) special: unique unit literals
         unit = self.unique_unit_literals()
-        self.writer.receive('literals_unit_unique_count', unit['unit'])
+        self.metrics['literals_unit_unique_count'] = unit['unit']
         if unit['pos'] > 0:
-            self.writer.receive('literals_unit_unique_positive_count', unit['pos'])
+            self.metrics['literals_unit_unique_positive_count'] = unit['pos']
         if unit['neg'] > 0:
-            self.writer.receive('literals_unit_unique_negative_count', unit['neg'])
+            self.metrics['literals_unit_unique_negative_count'] = unit['neg']
         if unit['contradiction'] > 0:
-            self.writer.receive('literals_unit_unique_contradictory_variable', unit['contradiction'])
+            self.metrics['literals_unit_unique_contradictory_variable'] = unit['contradiction']
 
         # (10) special: tautologies
         if self.tautological_literals > 0:
-            self.writer.receive('tautological_literals', self.tautological_literals)
+            self.metrics['tautological_literals'] = self.tautological_literals
         if self.tautological_clauses > 0:
-            self.writer.receive('tautological_clauses', self.tautological_clauses)
+            self.metrics['tautological_clauses'] = self.tautological_clauses
 
-        self.writer.end_metric()
+        self.writer.write(self.meta, self.metrics)
         self.writer.finish()

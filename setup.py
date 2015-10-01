@@ -50,10 +50,10 @@ setup(
     entry_points = {
         "console_scripts": [
             'cnf-analysis.py = cnfanalysis.scripts:main',
-            'cnf-analysis-index.py = cnfanalysis.scripts:main'
-            'cnf-analysis-inspect.py = cnfanalysis.scripts:main'
-            'cnf-analysis-stats-annotate.py = cnfanalysis.scripts:main'
-            'cnf-analysis-stats-combine.py = cnfanalysis.scripts:main'
+            'cnf-analysis-index.py = cnfanalysis.scripts:main2',
+            'cnf-analysis-inspect.py = cnfanalysis.scripts:main3',
+            'cnf-analysis-stats-annotate.py = cnfanalysis.scripts:main4',
+            'cnf-analysis-stats-combine.py = cnfanalysis.scripts:main5'
         ]
     }
 )
