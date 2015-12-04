@@ -4,7 +4,7 @@
       "@filename": "example001.cnf",
       "@md5sum": "3578b3b1c1ba7d8962f2fac9eac04d1d",
       "@sha1sum": "acd51999a506060f4c659d1828210dd0a9e3cd73",
-      "@time": "2015-10-01T00:57:00.097460",
+      "@time": "2015-12-04T15:23:28.234827",
       "metric": {
         "clauses_count": 4,
         "clauses_length_count": 4,
@@ -14,6 +14,7 @@
         "clauses_length_smallest": 3,
         "clauses_length_sum": 12,
         "clauses_unique_count": 4,
+        "connected_components": 2,
         "literals_count": 12,
         "literals_existential_count": 0,
         "literals_positive_in_clauses_count": 4,

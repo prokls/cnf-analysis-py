@@ -17,6 +17,8 @@ import datetime
 import statistics
 import collections
 
+import python_algorithms.basic.union_find
+
 SAT = 10
 UNSAT = 20
 
@@ -424,6 +426,11 @@ class IpasirAnalyzer(ExtendedIpasir):
 
     # member updates
 
+    def headerline(self, nbvars: int, nbclauses: int):
+        """Storing header values"""
+        self.comp = python_algorithms.basic.union_find.UF(nbvars + 1)
+        return super().headerline(nbvars, nbclauses)
+
     def end_clause(self, new_clause: tuple([int])):
         """Add a clause and some statistics about it"""
         new_clause = tuple(sorted(new_clause, key=lambda v: abs(v)))
@@ -439,6 +446,10 @@ class IpasirAnalyzer(ExtendedIpasir):
             self.variable_recurrence[abs(lit)] += 1
             self.variables.add(abs(lit))
             self.literals.add(lit)
+
+        if len(new_clause) > 1:
+            for i in range(1, len(new_clause)):
+                self.comp.union(new_clause[0], new_clause[i])
 
         tautological_literals = 0
         for i, j in zip(range(0, len(new_clause) - 1), range(1, len(new_clause))):
@@ -513,6 +524,10 @@ class IpasirAnalyzer(ExtendedIpasir):
             self.metrics['tautological_literals'] = self.tautological_literals
         if self.tautological_clauses > 0:
             self.metrics['tautological_clauses'] = self.tautological_clauses
+
+        # (11) special: connected components
+        if self.comp.count() > 0:
+            self.metrics['connected_components'] = self.comp.count()
 
         self.writer.write(self.meta, self.metrics)
         self.writer.finish()
