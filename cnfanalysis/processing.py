@@ -218,6 +218,8 @@ clauses_unique_count
   If this number differs from **clauses_count**, an error will be thrown beforehand
   because duplicate clauses exist and the CNF header gets checked. If ``--ignore-header``
   is enabled, no check will be done and this number might useful.
+xor2_count
+  If {a,b} and {-a,-b} occur as clauses, the counter will be incremented by one
 
 Literals
 ========
@@ -326,6 +328,8 @@ class IpasirAnalyzer(ExtendedIpasir):
         self.variable_recurrence = collections.defaultdict(int)
         self.tautological_literals = 0
         self.tautological_clauses = 0
+        self.xor2 = set()
+        self.xor2_count = 0
 
         self.clause = []
         self.writer = writer
@@ -460,6 +464,14 @@ class IpasirAnalyzer(ExtendedIpasir):
         if tautological_literals == len(new_clause) / 2:
             self.tautological_clauses += 1
 
+        if len(new_clause) == 2:
+            pair = tuple(sorted(new_clause))
+            if pair in self.xor2:
+                self.xor2_count += 1
+                self.xor2.remove(pair)
+            else:
+                self.xor2.append((-pair[1], -pair[0]))
+
     # finalization
 
     def finish(self):
@@ -528,6 +540,10 @@ class IpasirAnalyzer(ExtendedIpasir):
         # (11) special: connected components
         if self.comp.count() > 0:
             self.metrics['connected_components'] = self.comp.count()
+
+        # (12) special: xor2 detection
+        if self.xor2_count > 0:
+            self.metrics['xor2_count'] = self.xor2_count
 
         self.writer.write(self.meta, self.metrics)
         self.writer.finish()
