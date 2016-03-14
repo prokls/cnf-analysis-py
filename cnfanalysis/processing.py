@@ -213,6 +213,8 @@ clauses_length_sd
   Standard deviation for the length of clauses
 clauses_length_smallest
   Length of the shortest clause (by number of literals)
+clauses_length_uniform
+  true if all clauses have the same length, false otherwise
 clauses_unique_count
   How many clauses are unique?
   If this number differs from **clauses_count**, an error will be thrown beforehand
@@ -289,6 +291,7 @@ METRICS = {
     'clauses_length_sd' : (True,),
     'clauses_length_smallest' : (True,),
     'clauses_unique_count' : (True,),
+    'clause_uniform_length' : (True,),
     'literals_count' : (True,),
     'literals_existential_count' : (True,),
     'literals_existential_positive_count' : (False,),
@@ -328,6 +331,8 @@ class IpasirAnalyzer(ExtendedIpasir):
         self.variable_recurrence = collections.defaultdict(int)
         self.tautological_literals = 0
         self.tautological_clauses = 0
+        self.reference_length = -1
+        self.uniform_length = True
         self.xor2 = set()
         self.xor2_count = 0
 
@@ -464,6 +469,12 @@ class IpasirAnalyzer(ExtendedIpasir):
         if tautological_literals == len(new_clause) / 2:
             self.tautological_clauses += 1
 
+        if self.reference_length < 0:
+            self.reference_length = len(new_clause)
+        else:
+            if self.reference_length != len(new_clause):
+                self.uniform_length = False
+
         if len(new_clause) == 2:
             pair = tuple(sorted(new_clause))
             if pair in self.xor2:
@@ -491,7 +502,6 @@ class IpasirAnalyzer(ExtendedIpasir):
         # (3) number of unique variables
         len_variables = len(self.variables)
         self.metrics['variables_unique_count'] = len_variables
-
 
         # (4) statistics for clauses
         clause_lengths = [len(c) for c in self.clauses]
@@ -544,6 +554,9 @@ class IpasirAnalyzer(ExtendedIpasir):
         # (12) special: xor2 detection
         if self.xor2_count > 0:
             self.metrics['xor2_count'] = self.xor2_count
+
+        # (13) special: uniform clause length as used in lingeling for YalSAT
+        self.metrics['clauses_length_uniform'] = self.uniform_length
 
         self.writer.write(self.meta, self.metrics)
         self.writer.finish()

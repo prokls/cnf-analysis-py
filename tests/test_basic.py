@@ -48,6 +48,7 @@ class TestCnfAnalysis(unittest.TestCase):
             'clauses_length_sd': 0.0,
             'clauses_length_smallest': 3,
             'clauses_length_sum': 3,
+            'clauses_length_uniform': True,
             'clauses_unique_count': 1,
             'connected_components': 2,
             'literals_count': 3,
@@ -74,6 +75,7 @@ class TestCnfAnalysis(unittest.TestCase):
             'variables_unique_count': 3
         }
 
+        self.assertEqual(len(metrics['metrics'][0]['metric']), len(expect))
         for k, v in metrics['metrics'][0]['metric'].items():
             self.assertEqual(v, expect[k])
 
