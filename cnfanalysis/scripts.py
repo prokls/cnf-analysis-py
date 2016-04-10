@@ -69,7 +69,7 @@ def run(args: argparse.Namespace) -> int:
 
         if srcfile == '-':
             writer = statsfile.Writer(sys.stdout, format=outformat, encoding=args.encoding)
-            analyzer = Processor(writer)
+            analyzer = Processor(writer, full_var_occurence=args.full_var_dump)
             read(sys.stdin, analyzer, ignoreheader=args.ignoreheader)
             analyzer.solve()
             analyzer.release()
@@ -77,7 +77,7 @@ def run(args: argparse.Namespace) -> int:
         elif args.stdout:
             with open(srcfile) as fp:
                 writer = statsfile.Writer(sys.stdout, format=outformat, encoding=args.encoding)
-                analyzer = Processor(writer, filepath=srcfile)
+                analyzer = Processor(writer, full_var_occurence=args.full_var_dump, filepath=srcfile)
                 read(fp, analyzer, ignoreheader=args.ignoreheader)
                 analyzer.solve()
                 analyzer.release()
@@ -87,7 +87,7 @@ def run(args: argparse.Namespace) -> int:
                 try:
                     with open(outfile, 'wb') as fp2:
                         writer = statsfile.Writer(fp2, format=outformat, encoding=args.encoding)
-                        analyzer = Processor(writer, filepath=srcfile)
+                        analyzer = Processor(writer, full_var_occurence=args.full_var_dump, filepath=srcfile)
                         read(fp, analyzer, ignoreheader=args.ignoreheader)
                         analyzer.solve()
                         analyzer.release()
@@ -122,6 +122,8 @@ def main():
                         help='parse DIMACS file in multiline mode (default: false)')
     parser.add_argument('--stdout', action='store_true',
                         help='write to stdout instead of files (always set if stdin is used)')
+    parser.add_argument('--full-var-dump', action='store_true',
+                        help='add stats how many vars reached a given percent of occurence')
     parser.add_argument('--description', action='store_true',
                         help='do nothing but print documentation of metrics')
     parser.add_argument('--skip-existing', dest='skip', action='store_true',

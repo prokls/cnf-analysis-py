@@ -321,11 +321,14 @@ METRICS = {
 }
 
 class IpasirAnalyzer(ExtendedIpasir):
-    def __init__(self, writer, *, filepath='', time=''):
+    def __init__(self, writer, *, full_var_occurence=False, filepath='', time=''):
         super().__init__()
         self.clauses = set()
         self.literals = set()
         self.variables = set()
+        self.full_var_occurence = full_var_occurence
+        if full_var_occurence:
+            self.var_occurence = collections.defaultdict(int)
 
         self.clause_duplicates = 0
         self.variable_recurrence = collections.defaultdict(int)
@@ -335,6 +338,7 @@ class IpasirAnalyzer(ExtendedIpasir):
         self.uniform_length = True
         self.xor2 = set()
         self.xor2_count = 0
+        self.comp = None
 
         self.clause = []
         self.writer = writer
@@ -456,7 +460,7 @@ class IpasirAnalyzer(ExtendedIpasir):
             self.variables.add(abs(lit))
             self.literals.add(lit)
 
-        if len(new_clause) > 1:
+        if len(new_clause) > 1 and self.comp:
             for i in range(1, len(new_clause)):
                 self.comp.union(new_clause[0], new_clause[i])
 
@@ -475,13 +479,16 @@ class IpasirAnalyzer(ExtendedIpasir):
             if self.reference_length != len(new_clause):
                 self.uniform_length = False
 
+        if self.full_var_occurence:
+            self.var_occurence[abs(lit)] += 1
+
         if len(new_clause) == 2:
             pair = tuple(sorted(new_clause))
             if pair in self.xor2:
                 self.xor2_count += 1
                 self.xor2.remove(pair)
             else:
-                self.xor2.append((-pair[1], -pair[0]))
+                self.xor2.add((-pair[1], -pair[0]))
 
     # finalization
 
@@ -548,7 +555,7 @@ class IpasirAnalyzer(ExtendedIpasir):
             self.metrics['tautological_clauses'] = self.tautological_clauses
 
         # (11) special: connected components
-        if self.comp.count() > 0:
+        if self.comp and self.comp.count() > 0:
             self.metrics['connected_components'] = self.comp.count()
 
         # (12) special: xor2 detection
@@ -557,6 +564,21 @@ class IpasirAnalyzer(ExtendedIpasir):
 
         # (13) special: uniform clause length as used in lingeling for YalSAT
         self.metrics['clauses_length_uniform'] = self.uniform_length
+
+        # (14) special: full variable occurence
+        if self.full_var_occurence:
+            stats = collections.defaultdict(int)
+            invalid = False
+            for var, count in self.var_occurence.items():
+                if count > len_clauses:
+                    invalid = True
+                    break
+                percent = (100 * count) // len_clauses
+                stats[percent] += 1
+            for k, count in stats.items():
+                if invalid or count <= 0:
+                    continue
+                self.metrics['variables_occurence_ratio_{}'.format(k)] = count
 
         self.writer.write(self.meta, self.metrics)
         self.writer.finish()
