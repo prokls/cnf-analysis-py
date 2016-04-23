@@ -54,7 +54,7 @@ def run(args: argparse.Namespace) -> int:
         read = dimacsfile.read
     Processor = processing.IpasirAnalyzer
     if args.format not in {'xml', 'json'}:
-        print("Warning: Unknown format '{}'. JSON taken as output format.".format(args.format))
+        print("Warning: Unknown format '{}'. Fix: 'json' taken as output format.".format(args.format))
 
     # read, process and write
     for srcfile in dimacsfiles:
