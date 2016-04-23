@@ -334,6 +334,8 @@ class IpasirAnalyzer(ExtendedIpasir):
         self.variable_recurrence = collections.defaultdict(int)
         self.tautological_literals = 0
         self.tautological_clauses = 0
+        self.definite_clauses = 0
+        self.goal_clauses = 0
         self.reference_length = -1
         self.uniform_length = True
         self.xor2 = set()
@@ -490,6 +492,11 @@ class IpasirAnalyzer(ExtendedIpasir):
             else:
                 self.xor2.add((-pair[1], -pair[0]))
 
+        if (l > 0 for l in new_clause).count(True) == 1:
+            self.definite_clauses += 1
+        if (l > 0 for l in new_clause).count(True) == 0:
+            self.goal_clauses += 1
+
     # finalization
 
     def finish(self):
@@ -579,6 +586,11 @@ class IpasirAnalyzer(ExtendedIpasir):
                 if invalid or count <= 0:
                     continue
                 self.metrics['variables_occurence_ratio_{}'.format(k)] = count
+
+        # (15) Horn clauses
+        self.metrics['horn_clauses'] = self.definite_clauses + self.goal_clauses
+        self.metrics['horn_definite_clauses'] = self.definite_clauses
+        self.metrics['horn_goal_clauses'] = self.goal_clauses
 
         self.writer.write(self.meta, self.metrics)
         self.writer.finish()
