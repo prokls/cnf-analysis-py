@@ -8,9 +8,11 @@
 
     .. code:: bash
 
-        $ python3 setup.py cnfanalysis
+        $ python3 setup.py install
+        $ cnf-analysis-py triangle.cnf
+        $ cat triangle.stats.json
 
-    (C) 2015, meisterluk, BSD 3-clause license
+    (C) 2015-2016, meisterluk, CC-0 license
 """
 
 import os.path
@@ -24,9 +26,9 @@ def readfile(fname):
 
 setup(
     name='cnfanalysis',
-    version='1.7.0',
-    url='http://lukas-prokop.at/proj/cnfanalysis/',
-    license='BSD',
+    version='2.0.0',
+    url='http://lukas-prokop.at/proj/cnf-analysis/',
+    license='Public Domain',
     author='Lukas Prokop',
     author_email='admin@lukas-prokop.at',
     description='CNF file analysis',
@@ -37,8 +39,7 @@ setup(
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: BSD License',
-        'Natural Language :: English',
+        'License :: Public Domain',
         'Operating System :: Unix',
         'Programming Language :: Python :: 3 :: Only',
         'Topic :: Scientific/Engineering',
@@ -49,11 +50,7 @@ setup(
     ],
     entry_points = {
         "console_scripts": [
-            'cnf-analysis.py = cnfanalysis.scripts:main',
-            'cnf-analysis-index.py = cnfanalysis.scripts:main2',
-            'cnf-analysis-inspect.py = cnfanalysis.scripts:main3',
-            'cnf-analysis-stats-annotate.py = cnfanalysis.scripts:main4',
-            'cnf-analysis-stats-combine.py = cnfanalysis.scripts:main5'
+            'cnf-analysis-py = cnfanalysis.scripts:main'
         ]
     }
 )

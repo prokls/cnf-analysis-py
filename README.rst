@@ -4,11 +4,13 @@ cnf-analysis
 .. contents::
     :backlinks: none
 
-cnf-analysis is a command line tool to analyse CNF files.
-CNF files are expected to be written in DIMACS format.
-After parsing them, they are read through an IPASIR interface.
-On calling the ``release`` method, metrics about the CNF file are computed.
-Those metrics are written to a file with extension ``.stats``.
+cnf-analysis is a library to analyze DIMACS CNF files.
+Those files are commonly used to decode SAT problems and
+a few basic features of a CNF file might tell you something
+about the problem stated.
+
+This tool evaluates a list of features which are thoroughly
+described by the project and stores them in a JSON file.
 
 Performance
 -----------
@@ -19,8 +21,11 @@ Performance
 So performance can be a bit of an issue, but this gives you an estimate.
 You could split the evaluation space into multiple processes. I didn't.
 
+
 Memory
 ------
+
+50 MB
 
 On my 4GB-RAM machine I was able to process files up to 1 GB,
 but some benchmarks are larger (for example ``sc14-app/esawn_uw3.debugged.cnf``

@@ -1,137 +1,111 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
     cnfanalysis.scripts
-    ~~~~~~~~~~~~~~~~~~~
+    -------------------
 
-    Entry point for all python scripts.
+    Convenient functions for perform tasks with cnfanalysis.
 
-    (C) 2015, meisterluk, BSD 3-clause license
+    (C) 2015-2016, CC-0, Lukas Prokop
 """
 
 import sys
 import os.path
 import argparse
+import multiprocessing
 
-from . import processing
-from . import statsfile
-from . import dimacsfile
-
-__version__ = '1.7.0'
-__author__ = 'Lukas Prokop <lukas.prokop@student.tugraz.at>'
-
-
-def run(args: argparse.Namespace) -> int:
-    """Analyze files individually into several metrics datasets"""
-    if args.description:
-        print(processing.METRICS_DOCUMENTATION)
-        return 0
-
-    def create_new_filename(path: str, format: str) -> str:
-        base, ext = os.path.splitext(path)
-        if ext == ".cnf":
-            return "{}.stats.{}".format(base, format)
-        else:
-            return "{}.stats.{}".format(path, format)
-
-    # prepare arguments
-    dimacsfiles = args.dimacsfiles
-    read_stdin = False
-
-    if '-' in args.dimacsfiles:
-        read_stdin = True
-    if len(args.dimacsfiles) == 0:
-        read_stdin = True
-        dimacsfiles = ['-']
-
-    if read_stdin:
-        print('No DIMACS filepaths provided. Expecting DIMACS content at stdin …', file=sys.stderr)
-
-    # abstract reader, processing and writer
-    if args.multiline:
-        read = dimacsfile.read_multiline
-    else:
-        read = dimacsfile.read
-    Processor = processing.IpasirAnalyzer
-    if args.format not in {'xml', 'json'}:
-        print("Warning: Unknown format '{}'. Fix: 'json' taken as output format.".format(args.format))
-
-    # read, process and write
-    for srcfile in dimacsfiles:
-        outformat = 'xml' if args.format == 'xml' else 'json'
-        outfile = create_new_filename(srcfile, outformat)
-
-        if srcfile != '-' and args.skip:
-            if os.path.exists(outfile) and not os.stat(outfile).st_size == 0:
-                print('Info: File {} already exists. Skipping.' \
-                    .format(outfile), file=sys.stderr)
-                continue
-
-        if srcfile == '-':
-            writer = statsfile.Writer(sys.stdout, format=outformat, encoding=args.encoding)
-            analyzer = Processor(writer, full_var_occurence=args.full_var_dump)
-            read(sys.stdin, analyzer, ignoreheader=args.ignoreheader)
-            analyzer.solve()
-            analyzer.release()
-            writer.write()
-        elif args.stdout:
-            with open(srcfile) as fp:
-                writer = statsfile.Writer(sys.stdout, format=outformat, encoding=args.encoding)
-                analyzer = Processor(writer, full_var_occurence=args.full_var_dump, filepath=srcfile)
-                read(fp, analyzer, ignoreheader=args.ignoreheader)
-                analyzer.solve()
-                analyzer.release()
-                writer.write()
-        else:
-            with open(srcfile) as fp:
-                try:
-                    with open(outfile, 'wb') as fp2:
-                        writer = statsfile.Writer(fp2, format=outformat, encoding=args.encoding)
-                        analyzer = Processor(writer, full_var_occurence=args.full_var_dump, filepath=srcfile)
-                        read(fp, analyzer, ignoreheader=args.ignoreheader)
-                        analyzer.solve()
-                        analyzer.release()
-                        print("Info: File '{}' written".format(outfile, file=sys.stderr))
-                except Exception as e:
-                    os.unlink(outfile)
-                    raise e
-                except KeyboardInterrupt:
-                    os.unlink(outfile)
-                    raise KeyboardInterrupt
-
-        del writer
-        del analyzer
-
-    return 0
-
+from . import dimacs
+from . import collect
+from . import stats
 
 
 def main():
-    """Main routine"""
     parser = argparse.ArgumentParser(description='CNF analysis')
-
-    parser.add_argument('dimacsfiles', metavar='dimacsfiles', nargs='*',
+    parser.add_argument('dimacsfiles', metavar='dimacsfiles', nargs='+',
                         help='filepath of DIMACS file')
-    parser.add_argument('-e', '--encoding', dest='encoding', default='utf-8',
-                        help='output encoding (default: utf-8)')
-    parser.add_argument('-f', '--format', dest='format', default='json',
-                        help='output format (default: json)')
-    parser.add_argument('-p', '--ignore-header', dest='ignoreheader', action='store_true',
-                        help='do not check validity of header lines (default: false)')
-    parser.add_argument('-m', '--multiline', dest='multiline', action='store_true',
-                        help='parse DIMACS file in multiline mode (default: false)')
-    parser.add_argument('--stdout', action='store_true',
-                        help='write to stdout instead of files (always set if stdin is used)')
-    parser.add_argument('--full-var-dump', action='store_true',
-                        help='add stats how many vars reached a given percent of occurence')
-    parser.add_argument('--description', action='store_true',
-                        help='do nothing but print documentation of metrics')
-    parser.add_argument('--skip-existing', dest='skip', action='store_true',
-                        help='Skip analysis if file with extension .stats already exists')
+    parser.add_argument('-f', '--format', choices={'json', 'xml'}, default='json',
+                        help='format to store feature data in')
+    parser.add_argument('--ignore', action='append',
+                        help='a prefix for lines that shall be ignored (like "c")')
+    parser.add_argument('-n', '--no-hashes', action='store_true',
+                        help='do not compute hashes for the CNF file considered')
+    parser.add_argument('-p', '--fullpath', action='store_true',
+                        help='use full path instead of basename in featurefiles')
+    parser.add_argument('-s', '--skip-existing', action='store_true',
+                        help='skip file if file.stats.json exists')
+
+    # TODO: support gzipped files
+    # TODO: drop md5/sha2 because cnfhash is stable?!
+
+    def derive_outfile(filepath, fmt):
+        base, ext = filepath.rsplit('.', 1)
+        if ext == 'gz':
+            base, ext = base.rsplit('.', 1)
+        return base + '.stats.' + fmt
 
     args = parser.parse_args()
-    sys.exit(run(args))
+    arguments = [args.format, ''.join(args.ignore or ['%', 'c']), args.fullpath, not args.no_hashes, args.skip_existing]
+    with multiprocessing.Pool(os.cpu_count() or 1) as p:
+        p.starmap(evaluate_file, [[i, derive_outfile(i, args.format)] + arguments for i in args.dimacsfiles])
 
 
-if __name__ == '__main__':
-    main()
+def evaluate_file(filepath, *args, **kwargs):
+    oldpath = os.path.splitext(filepath)[0] + ".stats.json"
+    if os.path.exists(oldpath):
+        skip_existing = args[5]
+        if skip_existing:
+            return
+        else:
+            import datetime
+            import shutil
+            backupsuffix = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            newname = "{}.backup{}.stats.json".format(filepath, backupsuffix)
+            shutil.move(oldpath, newname)
+            print("Moved {} to {} to avoid name collision".format(oldpath, newname), file=sys.stderr)
+    args = args[0:5]
+
+    with open(filepath, encoding="utf-8") as fd:
+        try:
+            kwags = dict(kwargs)
+            kwags['fd_fp'] = filepath
+            return evaluate(fd, *args, **kwags)
+        except Exception as e:
+            print("Error while processing {}".format(filepath), file=sys.stderr)
+            raise e
+
+
+def evaluate(fd, outfile, format=None, ignore_lines='c%', fullpath=False, hashes=True, fd_fp=""):
+    """Evaluate cnfanalysis features for the CNF file provided
+    in file descriptor `fd` and write features to filepath `outfile`.
+
+    :param fd:              file descriptor to read from
+    :type fd:               file descriptor
+    :param outfile:         file path to write to
+    :type outfile:          str
+    :param format:          desired format of outfile: 'xml' or 'json'
+    :type format:           str
+    :param ignore_lines:    a string of prefixes of lines to ignore,
+                            e.g. 'c' means ignore all lines starting with 'c'
+    :type ignore_lines:     str
+    :param fullpath:        shall I store the full path in JSON?
+    :type fullpath:         bool
+    :param hashes:          shall I compute hashes for this file?
+    :type hashes:           bool
+    :param fd_fp:           filepath of file descriptor
+    :type fd_fp:            str
+    """
+    reader = dimacs.read(fd, ignore_lines)
+    state = collect.State()
+    header_fns = [collect.header_features]
+    clause_fns = [collect.linear_clause_features, collect.type3_clause_features]
+    literal_fns = [collect.linear_literal_features, collect.type3_literal_features]
+
+    collect.dispatch(reader, state, header_fns, clause_fns, literal_fns)
+
+    features = state.finalize()
+    if format == 'json' or not format:
+        stats.write_json(outfile, features, sourcefile=fd_fp, fullpath=fullpath, hashes=hashes)
+    else:
+        stats.write_xml(outfile, features, sourcefile=fd_fp, fullpath=fullpath, hashes=hashes)
+
+    print('File {} has been written.'.format(outfile))

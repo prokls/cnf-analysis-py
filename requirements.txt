@@ -1,1 +1,2 @@
 python_algorithms==0.2.2
+cnfhash>=2.x.x
