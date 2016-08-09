@@ -12,7 +12,14 @@
 import re
 
 
-def read(filedescriptor, ignore_lines='c%'):
+class NbVarsError(ValueError):
+    pass
+
+class NbClausesError(ValueError):
+    pass
+
+
+def read(filedescriptor, ignore_lines='c%', check_nbvars=False, check_nbclauses=False):
     """Read nbvars, nbclauses and literals of a DIMACS CNF file.
     The file descriptor provided must return decoded str objects.
     `ignore_lines` cannot ignore header lines (i.e. 'p'-lines).
@@ -38,6 +45,9 @@ def read(filedescriptor, ignore_lines='c%'):
     """
     mode = 0
     was_zero = False
+    clauses = 0
+    nbclauses = 0
+    nbvars = 0
 
     for lineno, line in enumerate(filedescriptor):
         errsuf = " at line {}".format(lineno + 1)
@@ -50,11 +60,13 @@ def read(filedescriptor, ignore_lines='c%'):
                 header = re.match('p cnf\s+(\d+)\s+(\d+)\s*$', line, re.I)
                 if not header:
                     raise ValueError('Invalid header line' + errsuf)
-                yield int(header.group(1))
-                yield int(header.group(2))
+                nbvars = int(header.group(1))
+                yield nbvars
+                nbclauses = int(header.group(2))
+                yield nbclauses
                 mode = 1
 
-        elif line.strip() == '' or any(line.startswith(p + ' ') for p in ignore_lines):
+        elif line.strip() == '' or any(line.startswith(p) for p in ignore_lines):
             pass
 
         else:
@@ -65,9 +77,15 @@ def read(filedescriptor, ignore_lines='c%'):
             vals = line.split()
             for lit in map(int, vals):
                 was_zero = (lit == 0)
+                if was_zero:
+                    clauses += 1
+                if check_nbvars and (-nbvars <= lit <= nbvars):
+                    raise NbVarsError('Literal {} exceeds nbvars [-{}, {}]'.format(lit, -nbvars, nbvars))
                 yield lit
 
     if mode == 0:
         raise ValueError('Empty DIMACS CNF file. Expected at least a header')
     if mode == 1 and not was_zero:
         yield 0
+    if check_nbclauses and clauses != nbclauses:
+        raise NbClausesError('Expected {} clauses, got {} clauses'.format(nbclauses, clauses))

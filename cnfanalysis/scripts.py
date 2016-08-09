@@ -9,9 +9,12 @@
     (C) 2015-2016, CC-0, Lukas Prokop
 """
 
+import re
 import sys
 import os.path
 import argparse
+import operator
+import datetime
 import multiprocessing
 
 from . import dimacs
@@ -27,15 +30,16 @@ def main():
                         help='format to store feature data in')
     parser.add_argument('--ignore', action='append',
                         help='a prefix for lines that shall be ignored (like "c")')
+    parser.add_argument('-u', '--units', type=int, default=os.cpu_count() or 1,
+                        help='how many units (= processes) should run in concurrently')
     parser.add_argument('-n', '--no-hashes', action='store_true',
                         help='do not compute hashes for the CNF file considered')
     parser.add_argument('-p', '--fullpath', action='store_true',
                         help='use full path instead of basename in featurefiles')
     parser.add_argument('-s', '--skip-existing', action='store_true',
-                        help='skip file if file.stats.json exists')
+                        help='skip CNF file if file.stats.json exists')
 
     # TODO: support gzipped files
-    # TODO: drop md5/sha2 because cnfhash is stable?!
 
     def derive_outfile(filepath, fmt):
         base, ext = filepath.rsplit('.', 1)
@@ -45,8 +49,69 @@ def main():
 
     args = parser.parse_args()
     arguments = [args.format, ''.join(args.ignore or ['%', 'c']), args.fullpath, not args.no_hashes, args.skip_existing]
-    with multiprocessing.Pool(os.cpu_count() or 1) as p:
+    with multiprocessing.Pool(args.units) as p:
         p.starmap(evaluate_file, [[i, derive_outfile(i, args.format)] + arguments for i in args.dimacsfiles])
+
+
+def annotate():
+    desc = 'Annotate CNF feature files. Syntax for criteria: "<feature>{==,!=,>,<}<value>"'
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument('-c', '--criterion', action='append',
+                        help='criterion which has to be met')
+    parser.add_argument('-t', '--tag', action='append', help='tag to annotate, i.e. append to @tags')
+    parser.add_argument('statsfiles', nargs='+', help='feature files to annotate')
+
+    args = parser.parse_args()
+
+    def parse_criterion(crit):
+        op = None
+        for o in {'==', '!=', '>', '<'}:
+            if o in crit:
+                op = o
+        if op is None:
+            raise ValueError('No operator like {==,!=,>,<} found in criterion')
+        feature, op, val = crit.split(op)
+        if val.lower() in {'true', 'false'}:
+            val = True if val.lower() == 'true' else False
+        elif val.lower() == 'nan' or re.search(r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?', val):
+            val = float(val)
+        elif re.search(r'\d+', val):
+            val = int(val)
+        else:
+            val = str(val)
+        op = {'==': operator.eq, '!=': operator.ne, '>': operator.gt, '<': operator.lt}[op]
+        print('Considering criterion: {}'.format((feature.strip(), op, val)), file=sys.stderr)
+        return feature.strip(), op, val
+
+    if not args.tag:
+        raise ValueError('Expected at least one tag to be provided with "-t TAG"')
+
+    crits = [parse_criterion(c) for c in args.criterion]
+    tags = ' '.join(args.tag)
+    for statsfile in args.statsfiles:
+        with open(statsfile) as fd:
+            data = json.load(fd)
+        for cnf in data:
+            # check criteria
+            met = True
+            for (feature, op, value) in crits:
+                if feature.startswith('@'):
+                    if not op(cnf[feature], value):
+                        met = False
+                else:
+                    if not op(cnf['featuring'][feature], value):
+                        met = False
+            if not met:
+                continue
+            # add tags
+            if '@tags' not in cnf:
+                cnf['@tags'] = tags
+            else:
+                cnf['@tags'] += tags
+        # write statsfile
+        with open(statsfile, 'w') as fd:
+            json.dump(data, fd)
+            print('Updated: {}'.format(statsfile), file=sys.stderr)
 
 
 def evaluate_file(filepath, *args, **kwargs):
@@ -94,6 +159,7 @@ def evaluate(fd, outfile, format=None, ignore_lines='c%', fullpath=False, hashes
     :param fd_fp:           filepath of file descriptor
     :type fd_fp:            str
     """
+    print('{} - Considering {}'.format(datetime.datetime.now().isoformat(), outfile))
     reader = dimacs.read(fd, ignore_lines)
     state = collect.State()
     header_fns = [collect.header_features]
@@ -108,4 +174,4 @@ def evaluate(fd, outfile, format=None, ignore_lines='c%', fullpath=False, hashes
     else:
         stats.write_xml(outfile, features, sourcefile=fd_fp, fullpath=fullpath, hashes=hashes)
 
-    print('File {} has been written.'.format(outfile))
+    print('{} - File {} has been written.'.format(datetime.datetime.now().isoformat(), outfile))

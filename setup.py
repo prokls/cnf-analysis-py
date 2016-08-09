@@ -50,7 +50,8 @@ setup(
     ],
     entry_points = {
         "console_scripts": [
-            'cnf-analysis-py = cnfanalysis.scripts:main'
+            'cnf-analysis-py = cnfanalysis.scripts:main',
+            'cnf-analysis-annotate = cnfanalysis.scripts:annotate'
         ]
     }
 )
