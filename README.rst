@@ -99,7 +99,9 @@ Performance
 
 ``cnf-analysis-py`` puts CNF files supplied as command
 line arguments into a process pool and uses processes
-in the number of CPUs available on your machine.
+in the number of CPUs available on your machine. You
+can however use ``-u`` to define the number of parallel
+processes. Also consider the remarks for memory.
 
 This sort of parallelism should be best suited for python
 and I retrieved the following runtime results (for SAT
@@ -131,9 +133,12 @@ in python on my Linux machine with only 4 GB. On my 16 GB machine it took
 
 ``esawn_uw3.debugged.cnf`` used 8 GB RAM.
 
+Thrashing can dramatically reduce performance. Hence, if your entire memory
+is used, consider cancellation. Use
+``units = total virtual memory / (avg file size * 10)`` to determine
+the recommended number of parallel units.
 
-Certainly this implementation is not very memory efficient,
-but also for large files, you should not run out of memory.
+Certainly this implementation is **not very memory efficient**.
 
 Dependencies
 ------------
@@ -141,16 +146,17 @@ Dependencies
 * `python3 <http://python.org/>`_
 
 It works with Python 3.4 or later. I tested it on linux x86_64.
-Package dependencies are listed in ``requirements.txt``.
+Package dependencies are listed in ``requirements.txt``:
 
+* ``python_algorithms`` for a Union-Find implementation
+* ``cnfhash`` to compute the cnfhash
 
 Command line options
 --------------------
 
-``-f xml``
-  Use XML output instead of JSON
-``--ignore c``
-  Ignore any lines starting with "c"
+``--ignore c --ignore x``
+  Ignore any lines starting with "c" or "x".
+  If none is specified "c" and "%" is ignored.
 ``--no-hashes``
   skip hash computations
 ``--fullpath``
@@ -168,8 +174,7 @@ literals.
 Features
 --------
 
-TODO
-
+Features are documented in my paper "Analyzing CNF benchmarks".
 
 Cheers,
 prokls

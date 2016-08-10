@@ -11,6 +11,7 @@
 
 import re
 import sys
+import json
 import os.path
 import argparse
 import operator
@@ -86,7 +87,10 @@ def annotate():
     if not args.tag:
         raise ValueError('Expected at least one tag to be provided with "-t TAG"')
 
-    crits = [parse_criterion(c) for c in args.criterion]
+    if args.criterion:
+        crits = [parse_criterion(c) for c in args.criterion]
+    else:
+        crits = []
     tags = ' '.join(args.tag)
     for statsfile in args.statsfiles:
         with open(statsfile) as fd:
@@ -107,10 +111,10 @@ def annotate():
             if '@tags' not in cnf:
                 cnf['@tags'] = tags
             else:
-                cnf['@tags'] += tags
+                cnf['@tags'] += ' ' + tags
         # write statsfile
         with open(statsfile, 'w') as fd:
-            json.dump(data, fd)
+            json.dump(data, fd, indent=2, sort_keys=True)
             print('Updated: {}'.format(statsfile), file=sys.stderr)
 
 

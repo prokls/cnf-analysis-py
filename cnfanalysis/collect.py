@@ -82,13 +82,13 @@ class State:
             if freq > 1.0:
                 lit_freq_valid = False
             lit_freq.append(freq)
-            lit_freq_cat[int((100 * freq) // 5) if freq != 1.0 else 19] += 1
+            lit_freq_cat[int((100 * freq) // 5) if freq < 1.0 else 19] += 1
         for var in range(1, max(variables_used) + 1):
             freq = 1.0 * (self.literals_occurences[var] + self.literals_occurences[-var]) / self.nbclauses
             if freq > 1.0:
                 var_freq_valid = False
             var_freq.append(freq)
-            var_freq_cat[int((100 * freq) // 5) if freq != 1.0 else 19] += 1
+            var_freq_cat[int((100 * freq) // 5) if freq < 1.0 else 19] += 1
 
 
         features = {
