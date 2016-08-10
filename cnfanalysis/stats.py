@@ -6,7 +6,7 @@
 
     Library to handle featurefiles.
 
-    (C) 2015/2016, CC-0 licensed, Lukas Prokop
+    (C) 2015-2016, CC-0 licensed, Lukas Prokop
 """
 
 import json

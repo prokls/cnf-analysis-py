@@ -26,7 +26,7 @@ def readfile(fname):
 
 setup(
     name='cnfanalysis',
-    version='2.0.0',
+    version='3.0.0',
     url='http://lukas-prokop.at/proj/cnf-analysis/',
     license='Public Domain',
     author='Lukas Prokop',

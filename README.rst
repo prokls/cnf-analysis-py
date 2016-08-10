@@ -1,12 +1,12 @@
-cnf-analysis
-============
+cnf-analysis-py
+===============
 
 :author:     Lukas Prokop
 :date:       June 2015 to August 2016
-:version:    1.0.0
+:version:    3.0.0
 :license:    CC-0
 
-cnf-analysis is a library to analyze DIMACS CNF files.
+cnf-analysis-py is a library to analyze DIMACS CNF files.
 Those files are commonly used to decode SAT problems and
 a few basic features of a CNF file might tell you something
 about the problem stated.
