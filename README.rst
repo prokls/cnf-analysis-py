@@ -112,7 +112,8 @@ competition 2016 CNF files):
 * ``bench_573.smt2.cnf`` (1.6 MB) in *Agile* took 2min 14sec
 
 Be aware that the performance mainly depends on the features computed.
-Designated tool to compute a subset of features can be much faster.
+Designated tool to compute a subset of features can be much faster,
+however none is provided with this implementation.
 
 I am using my Thinkpad x220t with 16GB RAM and an Intel Core
 i5-2520M CPU (2.50GHz) as reference system here.

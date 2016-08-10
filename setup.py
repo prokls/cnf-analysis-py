@@ -48,7 +48,7 @@ setup(
         'Topic :: Security :: Cryptography',
         'Topic :: Text Processing :: General'
     ],
-    entry_points = {
+    entry_points={
         "console_scripts": [
             'cnf-analysis-py = cnfanalysis.scripts:main',
             'cnf-analysis-annotate = cnfanalysis.scripts:annotate'

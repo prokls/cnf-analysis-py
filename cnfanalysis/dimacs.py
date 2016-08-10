@@ -15,11 +15,13 @@ import re
 class NbVarsError(ValueError):
     pass
 
+
 class NbClausesError(ValueError):
     pass
 
 
-def read(filedescriptor, ignore_lines='c%', check_nbvars=False, check_nbclauses=False):
+def read(filedescriptor, ignore_lines='c%',
+         check_nbvars=False, check_nbclauses=False):
     """Read nbvars, nbclauses and literals of a DIMACS CNF file.
     The file descriptor provided must return decoded str objects.
     `ignore_lines` cannot ignore header lines (i.e. 'p'-lines).
@@ -39,7 +41,8 @@ def read(filedescriptor, ignore_lines='c%', check_nbvars=False, check_nbclauses=
         [4, 3, 1, -2, 0, 3, -4, -2, 0, 1, -4, 0]
 
     :param filedescriptor:  file descriptor returning DIMACS CNF content
-    :param ignore_lines:    prefixes of lines to ignore (like 'c' for comment lines)
+    :param ignore_lines:    prefixes of lines to ignore
+                            (like 'c' for comment lines)
     :type ignore_lines:     [str]
     :return:                generator for header values and literals
     """
@@ -51,6 +54,7 @@ def read(filedescriptor, ignore_lines='c%', check_nbvars=False, check_nbclauses=
 
     for lineno, line in enumerate(filedescriptor):
         errsuf = " at line {}".format(lineno + 1)
+        is_ignoreline = any(line.startswith(p) for p in ignore_lines)
 
         if line[0] == 'p':
             if mode != 0:
@@ -66,7 +70,7 @@ def read(filedescriptor, ignore_lines='c%', check_nbvars=False, check_nbclauses=
                 yield nbclauses
                 mode = 1
 
-        elif line.strip() == '' or any(line.startswith(p) for p in ignore_lines):
+        elif line.strip() == '' or is_ignoreline:
             pass
 
         else:
@@ -80,7 +84,8 @@ def read(filedescriptor, ignore_lines='c%', check_nbvars=False, check_nbclauses=
                 if was_zero:
                     clauses += 1
                 if check_nbvars and (-nbvars <= lit <= nbvars):
-                    raise NbVarsError('Literal {} exceeds nbvars [-{}, {}]'.format(lit, -nbvars, nbvars))
+                    errmsg = 'Literal {} exceeds nbvars [-{}, {}]'
+                    raise NbVarsError(errmsg.format(lit, -nbvars, nbvars))
                 yield lit
 
     if mode == 0:
@@ -88,4 +93,5 @@ def read(filedescriptor, ignore_lines='c%', check_nbvars=False, check_nbclauses=
     if mode == 1 and not was_zero:
         yield 0
     if check_nbclauses and clauses != nbclauses:
-        raise NbClausesError('Expected {} clauses, got {} clauses'.format(nbclauses, clauses))
+        errmsg = 'Expected {} clauses, got {} clauses'
+        raise NbClausesError(errmsg.format(nbclauses, clauses))

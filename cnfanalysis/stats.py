@@ -21,7 +21,6 @@ import xml.sax.saxutils
 import xml.sax.handler
 
 
-
 def detect_format(filepath):
     """Given a featuresfile of unknown format.
     Detect the format by reading the first byte.
@@ -77,7 +76,9 @@ def md5sha1hashes(sourcefile, blocksize=4096):
 
 
 def cnf2hash(sourcefile, blocksize=4096):
+    """Compute cnfhash of given CNF files"""
     import cnfhash
+
     def read_blockwise(filepath):
         with open(filepath, 'rb') as fd:
             while True:
@@ -85,6 +86,7 @@ def cnf2hash(sourcefile, blocksize=4096):
                 if len(buf) == 0:
                     break
                 yield buf
+
     return cnfhash.hash_dimacs(read_blockwise(sourcefile))
 
 
@@ -106,7 +108,7 @@ def extend_metadata(feature_data, sourcefile='', fullpath=False, hashes=False):
     data = [{
         "@timestamp": datetime.datetime.utcnow().isoformat(),
         "@version": "1.0.0",
-        "featuring" : feature_data
+        "featuring": feature_data
     }]
     if not fullpath:
         data[0]["@filename"] = os.path.basename(sourcefile)
@@ -126,7 +128,7 @@ def extend_metadata(feature_data, sourcefile='', fullpath=False, hashes=False):
 
 
 def write_json(filepath, feature_data, sourcefile='', fullpath=False,
-    hashes=False, mode='x', meta={}):
+               hashes=False, mode='x', meta={}):
     """Given a dictionary of `featuredata`, store it at `filepath`
     in JSON format.
 
@@ -174,7 +176,7 @@ def write_xml(filepath, feature_data, sourcefile='', fullpath=False, hashes=Fals
 
     with open(filepath, mode) as fd:
         doc = xml.sax.saxutils.XMLGenerator(fd, encoding='utf-8',
-            short_empty_elements=True)
+                                            short_empty_elements=True)
         doc.startDocument()
         doc.startElement('features', {})
         doc.ignorableWhitespace("\n  ")
@@ -182,9 +184,9 @@ def write_xml(filepath, feature_data, sourcefile='', fullpath=False, hashes=Fals
         meta = dict((k[1:], v) for k, v in data[0].items() if k != 'featuring')
         doc.startElement('file', meta)
 
-        for name, value in data[0].items():
+        for name, value in data[0]['featuring'].items():
             doc.ignorableWhitespace("\n    ")
-            doc.startElement('featuring', {key: str(value)})
+            doc.startElement('featuring', {name: str(value)})
             doc.endElement('featuring')
 
         doc.ignorableWhitespace("\n  ")

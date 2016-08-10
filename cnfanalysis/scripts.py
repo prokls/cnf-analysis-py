@@ -49,9 +49,11 @@ def main():
         return base + '.stats.' + fmt
 
     args = parser.parse_args()
-    arguments = [args.format, ''.join(args.ignore or ['%', 'c']), args.fullpath, not args.no_hashes, args.skip_existing]
+    arguments = [args.format, ''.join(args.ignore or ['%', 'c']), args.fullpath,
+                 not args.no_hashes, args.skip_existing]
     with multiprocessing.Pool(args.units) as p:
-        p.starmap(evaluate_file, [[i, derive_outfile(i, args.format)] + arguments for i in args.dimacsfiles])
+        p.starmap(evaluate_file, [[i, derive_outfile(i, args.format)] + arguments
+                                  for i in args.dimacsfiles])
 
 
 def annotate():
@@ -59,8 +61,10 @@ def annotate():
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-c', '--criterion', action='append',
                         help='criterion which has to be met')
-    parser.add_argument('-t', '--tag', action='append', help='tag to annotate, i.e. append to @tags')
-    parser.add_argument('statsfiles', nargs='+', help='feature files to annotate')
+    parser.add_argument('-t', '--tag', action='append',
+                        help='tag to annotate, i.e. append to @tags')
+    parser.add_argument('statsfiles', nargs='+',
+                        help='feature files to annotate')
 
     args = parser.parse_args()
 
@@ -130,7 +134,8 @@ def evaluate_file(filepath, *args, **kwargs):
             backupsuffix = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             newname = "{}.backup{}.stats.json".format(filepath, backupsuffix)
             shutil.move(oldpath, newname)
-            print("Moved {} to {} to avoid name collision".format(oldpath, newname), file=sys.stderr)
+            warning = "Moved {} to {} to avoid name collision"
+            print(warning.format(oldpath, newname), file=sys.stderr)
     args = args[0:5]
 
     with open(filepath, encoding="utf-8") as fd:
@@ -163,12 +168,12 @@ def evaluate(fd, outfile, format=None, ignore_lines='c%', fullpath=False, hashes
     :param fd_fp:           filepath of file descriptor
     :type fd_fp:            str
     """
-    print('{} - Considering {}'.format(datetime.datetime.now().isoformat(), outfile))
+    print('{} - {} starting'.format(datetime.datetime.now().isoformat(), outfile))
     reader = dimacs.read(fd, ignore_lines)
     state = collect.State()
     header_fns = [collect.header_features]
-    clause_fns = [collect.linear_clause_features, collect.type3_clause_features]
-    literal_fns = [collect.linear_literal_features, collect.type3_literal_features]
+    clause_fns = [collect.linear_clause_features, collect.expensive_clause_features]
+    literal_fns = [collect.linear_literal_features, collect.expensive_literal_features]
 
     collect.dispatch(reader, state, header_fns, clause_fns, literal_fns)
 
@@ -178,4 +183,4 @@ def evaluate(fd, outfile, format=None, ignore_lines='c%', fullpath=False, hashes
     else:
         stats.write_xml(outfile, features, sourcefile=fd_fp, fullpath=fullpath, hashes=hashes)
 
-    print('{} - File {} has been written.'.format(datetime.datetime.now().isoformat(), outfile))
+    print('{} - {} written'.format(datetime.datetime.now().isoformat(), outfile))

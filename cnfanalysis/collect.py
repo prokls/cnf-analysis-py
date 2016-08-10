@@ -16,6 +16,10 @@ import python_algorithms.basic.union_find
 
 
 class State:
+    """Represents an intermediate state
+    when computing CNF features
+    """
+
     def __init__(self):
         self.nbvars = 0
         self.nbclauses = 0
@@ -39,7 +43,6 @@ class State:
         self.definite_clause_count = 0
         self.goal_clause_count = 0
 
-
     def finalize(self):
         """After dispatching the last literal, return a dictionary of
         features with their values.
@@ -48,6 +51,8 @@ class State:
         :rtype:         dict
         """
         # TODO: support full_var_occurence
+        # TODO: support clauses_unique_count
+        # TODO: support xor2_detect
         variables_used = set(map(abs, self.literals))
         existential_lits, existential_pos_lits = 0, 0
         literals_occurence_one_count = 0
@@ -68,6 +73,7 @@ class State:
             if ratio != 0.0:
                 pnlicre += ratio * math.log(ratio, 2)
             pnlicrm.append(ratio)
+        pnlicrs = statistics.pstdev(pnlicrm)
         pnlicrm = statistics.mean(pnlicrm)
 
         # Assumption: number of clauses with literal X ~ number of occurences of X
@@ -84,12 +90,13 @@ class State:
             lit_freq.append(freq)
             lit_freq_cat[int((100 * freq) // 5) if freq < 1.0 else 19] += 1
         for var in range(1, max(variables_used) + 1):
-            freq = 1.0 * (self.literals_occurences[var] + self.literals_occurences[-var]) / self.nbclauses
+            p = self.literals_occurences[var]
+            n = self.literals_occurences[-var]
+            freq = 1.0 * (p + n) / self.nbclauses
             if freq > 1.0:
                 var_freq_valid = False
             var_freq.append(freq)
             var_freq_cat[int((100 * freq) // 5) if freq < 1.0 else 19] += 1
-
 
         features = {
             'nbvars': self.nbvars,
@@ -99,10 +106,10 @@ class State:
             'variables_used_count': len(variables_used),
             'variables_largest': max(variables_used),
             'variables_smallest': min(variables_used),
-#            'clauses_unique_count': ,  # TODO
             'positive_literals_count': sum(self.positive_literals_in_clause),
             'positive_negative_literals_in_clause_ratio_entropy': -pnlicre,
             'positive_negative_literals_in_clause_ratio_mean': pnlicrm,
+            'positive_negative_literals_in_clause_ratio_stdev': pnlicrs,
             'existential_literals_count': existential_lits,
             'existential_positive_literals_count': existential_pos_lits,
             'clause_variables_sd_mean': statistics.mean(self.clause_variables_sd),
@@ -116,13 +123,15 @@ class State:
             'true_trivial': self.true_trivial,
             'false_trivial': self.false_trivial,
             'literals_occurence_one_count': literals_occurence_one_count,
-#            'xor2_detect': , # TODO
             'definite_clauses_count': self.definite_clause_count,
             'goal_clauses_count': self.goal_clause_count
         }
-        features.update(self._stat(self.clause_lengths, 'clauses_length', 'aimsd'))
-        features.update(self._stat(self.positive_literals_in_clause, 'positive_literals_in_clause', 'aimsd'))
-        features.update(self._stat(self.negative_literals_in_clause, 'negative_literals_in_clause', 'aim'))
+        features.update(self._stat(self.clause_lengths,
+                                   'clauses_length', 'aimsd'))
+        features.update(self._stat(self.positive_literals_in_clause,
+                                   'positive_literals_in_clause', 'aimsd'))
+        features.update(self._stat(self.negative_literals_in_clause,
+                                   'negative_literals_in_clause', 'aim'))
         if lit_freq_valid:
             features.update(self._stat(lit_freq, 'literals_frequency', 'aimsde'))
         if var_freq_valid:
@@ -136,24 +145,36 @@ class State:
         return features
 
     @staticmethod
-    def _stat(ints, prefix, spec='aimsd'):
-        if not ints:
+    def _stat(nums, prefix, spec='aimsd'):
+        """Compute general statistics for a given list of numbers.
+
+        :param nums:        a list of numbers
+        :type nums:         int or float
+        :param prefix:      string prefix to append to dict keys returned
+        :type prefix:       str
+        :param spec:        features to compute, a=max, i=min, m=mean,
+                            s=stdev, d=median, e=entropy
+        :type spec:         str
+        :return:            dictionary of features computed
+        :rtype:             dict
+        """
+        if not nums:
             return {}
 
         d = {}
         if 'a' in spec:
-            d[prefix + '_largest'] = max(ints)
+            d[prefix + '_largest'] = max(nums)
         if 'i' in spec:
-            d[prefix + '_smallest'] = min(ints)
+            d[prefix + '_smallest'] = min(nums)
         if 'm' in spec:
-            d[prefix + '_mean'] = statistics.mean(ints)
+            d[prefix + '_mean'] = statistics.mean(nums)
         if 's' in spec:
-            d[prefix + '_sd'] = statistics.pstdev(ints)
+            d[prefix + '_sd'] = statistics.pstdev(nums)
         if 'd' in spec:
-            d[prefix + '_median'] = statistics.median(ints)
+            d[prefix + '_median'] = statistics.median(nums)
         if 'e' in spec:
             d[prefix + '_entropy'] = 0.0
-            for val in ints:
+            for val in nums:
                 if val <= 0.0:
                     continue
                 d[prefix + '_entropy'] += val * math.log(val, 2)
@@ -162,6 +183,7 @@ class State:
 
 
 def header_features(state, nbvars, nbclauses):
+    """Evaluate features based on CNF header"""
     state.nbvars = nbvars
     state.nbclauses = nbclauses
 
@@ -169,7 +191,11 @@ def header_features(state, nbvars, nbclauses):
     state.connected_variable_components = python_algorithms.basic.union_find.UF(nbvars + 1)
 
 
-_poseq = lambda n: -2*n if n < 0 else 2*n - 1
+def _poseq(n):
+    """map given integer to natural number"""
+    return -2*n if n < 0 else 2*n - 1
+
+
 def linear_clause_features(state, clause):
     """Linear computable clause features"""
     state.clauses_count += 1
@@ -214,8 +240,8 @@ def linear_literal_features(state, literal):
         raise ValueError(errmsg.format(literal, state.nbvars, state.nbvars))
 
 
-def type3_clause_features(state, clause):
-    """Type 3 clause features"""
+def expensive_clause_features(state, clause):
+    """Computationally expensive clause features"""
     state.clause_lengths.append(len(clause))
     pos = len(list(filter(lambda v: v > 0, clause)))
     state.positive_literals_in_clause.append(pos)
@@ -231,8 +257,8 @@ def type3_clause_features(state, clause):
         state.xor2_detect[ref] |= id
 
 
-def type3_literal_features(state, literal):
-    """Type 3 literal features"""
+def expensive_literal_features(state, literal):
+    """Computationally expensive literal features"""
     state.literals.add(literal)
     state.literals_occurences[literal] += 1
 
